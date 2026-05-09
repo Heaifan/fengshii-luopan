@@ -1,17 +1,39 @@
-# bazhai_compass
+# 测向工具 (Bazhai Compass)
 
-A new Flutter project.
+自用风水罗盘 App，用于看房现场快速测向、判断二十四山和八宅八星。
 
-## Getting Started
+## 当前版本
 
-This project is a starting point for a Flutter application.
+**v0.2.1** — 真实罗盘 + 校准 + 磁场状态提示
 
-A few resources to get you started if this is your first Flutter project:
+### 已完成
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- 实时罗盘：手机转动实时显示方位角
+- 二十四山判断：角度自动转换为二十四山
+- 八卦宫位：自动判断当前宫位
+- 八宅八星：支持宅卦选择，自动计算八星吉凶
+- 三元龙天地人：自动判断天位/人位/地位
+- 手动测试模式：滑块输入角度用于调试
+- 校准偏移：支持以当前方向为0°校准
+- 角度平滑防抖：减少罗盘跳动
+- 磁场状态提示：根据角度稳定性判断磁场是否正常
+- 校准引导弹窗：说明如何减少磁场干扰
+- 设置保存：宅卦和校准值持久化
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 下一阶段
+
+- CustomPainter 绘制二十四山罗盘盘面
+- 门主灶供记录按钮
+- 天地人完整性检查
+- 打包 Release APK
+
+## 运行方式
+
+```bash
+flutter pub get
+flutter run
+```
+
+## 技术栈
+
+Flutter + Dart + Riverpod + flutter_compass + shared_preferences

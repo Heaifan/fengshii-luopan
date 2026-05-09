@@ -240,7 +240,7 @@ class _CompassPageState extends State<CompassPage> {
                 ? AppTheme.auspiciousColor
                 : AppTheme.inauspiciousColor,
           ),
-          const Divider(height: 20),
+          const Divider(height: 20, color: Colors.white10),
           _StatusRow(
             label: '磁场',
             value: _magneticStatus.label,
@@ -248,7 +248,7 @@ class _CompassPageState extends State<CompassPage> {
                 ? AppTheme.auspiciousColor
                 : AppTheme.inauspiciousColor,
           ),
-          _StatusRow(label: '水平', value: '未检测'),
+          _StatusRow(label: '水平', value: '未开启'),
           if (_magneticStatus != MagneticStatus.normal &&
               _magneticStatus != MagneticStatus.unavailable)
             Padding(
@@ -308,20 +308,20 @@ class _CompassPageState extends State<CompassPage> {
   }
 
   Widget _buildCalibrationButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.center,
       children: [
         OutlinedButton.icon(
           onPressed: _calibrateToZero,
           icon: const Icon(Icons.gps_fixed, size: 18),
-          label: const Text('当前方向为0°'),
+          label: const Text('设当前为0°'),
         ),
-        const SizedBox(width: 12),
         OutlinedButton(
           onPressed: _resetCalibration,
           child: const Text('重置校准'),
         ),
-        const SizedBox(width: 12),
         OutlinedButton(
           onPressed: _showCalibrationGuide,
           child: const Text('校准说明'),

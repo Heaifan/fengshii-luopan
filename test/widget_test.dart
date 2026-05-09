@@ -5,13 +5,17 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bazhai_compass/main.dart';
+import 'package:bazhai_compass/app/app.dart';
 
 void main() {
-  testWidgets('App displays rule test page', (WidgetTester tester) async {
-    await tester.pumpWidget(const BazhaiCompassApp());
-    expect(find.text('规则测试'), findsOneWidget);
+  testWidgets('App displays compass page', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(child: BazhaiCompassApp()),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('测向工具'), findsOneWidget);
   });
 }

@@ -283,23 +283,22 @@ class VerticalMiniBubble extends StatelessWidget {
     final color = tiltColor(status);
 
     return SizedBox(
-      width: 36,
-      height: 90,
+      width: 42,
+      height: 72,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 10, color: Color(0xFF7A6040))),
           Text(
             hasData ? '${angle.abs().toStringAsFixed(1)}°' : '--',
             style: TextStyle(fontSize: 10, color: color),
           ),
           const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 9, color: Color(0xFF7A6040))),
-          const SizedBox(height: 2),
           Expanded(
             child: CustomPaint(
-              size: const Size(36, double.infinity),
+              size: const Size(42, double.infinity),
               painter: _VerticalBubblePainter(
                   angle: angle, color: color, hasData: hasData),
             ),
@@ -353,9 +352,9 @@ class _VerticalBubblePainter extends CustomPainter {
       Paint()..color = const Color(0x334CAF50),
     );
 
-    // Bubble: vertical displacement (negative angle = up, positive = down)
+    // Bubble: positive angle → bubble down
     final clamped = angle.clamp(-maxAngle, maxAngle);
-    final ratio = -clamped / maxAngle; // negate: positive angle → bubble down
+    final ratio = clamped / maxAngle;
     final by = h / 2 + ratio * (h / 2 - 8);
 
     canvas.drawCircle(

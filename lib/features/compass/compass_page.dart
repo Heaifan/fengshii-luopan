@@ -281,20 +281,27 @@ class _CompassPageState extends State<CompassPage> {
         child: Column(
           children: [
             _buildTopPanel(reading, discRotationDeg),
-            _buildShoulderBubbles(),
-            // ---- Luopan disc ----
+            // ---- Luopan disc with bubble overlay ----
             Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 500),
-                    child: LuopanDial(
-                      heading: _displayHeading,
-                      houseGua: _houseGua,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 500),
+                      child: LuopanDial(
+                        heading: _displayHeading,
+                        houseGua: _houseGua,
+                      ),
                     ),
                   ),
-                ),
+                  Positioned(
+                    left: 20,
+                    top: 4,
+                    child: _buildLeftBubbleGroup(),
+                  ),
+                ],
               ),
             ),
             // ---- Bottom controls ----
@@ -423,19 +430,15 @@ class _CompassPageState extends State<CompassPage> {
 
   // ======== SHOULDER BUBBLES ========
 
-  Widget _buildShoulderBubbles() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left: horizontal level indicator
-          MiniBubbleIndicator(label: '水平', angle: _tiltH),
-          // Right: vertical tilt indicator
-          VerticalMiniBubble(label: '俯仰', angle: _tiltV),
-        ],
-      ),
+  Widget _buildLeftBubbleGroup() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MiniBubbleIndicator(label: '水平', angle: _tiltH),
+        const SizedBox(height: 4),
+        VerticalMiniBubble(label: '垂直', angle: _tiltV),
+      ],
     );
   }
 

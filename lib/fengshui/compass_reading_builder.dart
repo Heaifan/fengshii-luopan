@@ -12,6 +12,7 @@ class CompassReading {
   final String facingGua;
   final String sittingGua;
   final String sanyuanType;
+  final String fullSanyuanText;
   final String bazhaiStar;
   final String bazhaiRank;
   final bool isAuspicious;
@@ -25,6 +26,7 @@ class CompassReading {
     required this.facingGua,
     required this.sittingGua,
     required this.sanyuanType,
+    required this.fullSanyuanText,
     required this.bazhaiStar,
     required this.bazhaiRank,
     required this.isAuspicious,
@@ -53,6 +55,10 @@ class CompassReadingBuilder {
       targetGua: facingGua,
     );
 
+    final element = Mountain24Calculator.elementOf(facing.mountain);
+    final fullSanyuan =
+        '${facing.mountain}${sanyuan.shortLabel}$element';
+
     return CompassReading(
       facingDegree: normalizeDegree(degree),
       sittingDegree: normalizeDegree(sittingDegree),
@@ -61,6 +67,7 @@ class CompassReadingBuilder {
       facingGua: facingGua,
       sittingGua: sittingGua,
       sanyuanType: sanyuan.label,
+      fullSanyuanText: fullSanyuan,
       bazhaiStar: bazhai.star,
       bazhaiRank: bazhai.rank,
       isAuspicious: bazhai.isAuspicious,

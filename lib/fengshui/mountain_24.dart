@@ -26,6 +26,19 @@ class Mountain24Calculator {
     '酉', '辛', '戌', '乾', '亥', '壬',
   ];
 
+  // 五行, indexed same as mountains
+  static const List<String> elements = [
+    '水', '水', '土', '土', '土', '木',
+    '木', '木', '木', '木', '木', '火',
+    '火', '火', '土', '土', '金', '金',
+    '金', '金', '土', '金', '水', '水',
+  ];
+
+  static String elementOf(String mountain) {
+    final i = mountains.indexOf(mountain);
+    return i >= 0 ? elements[i] : '';
+  }
+
   static Mountain24Result fromDegree(double degree) {
     final d = normalizeDegree(degree);
     final index = ((d + 7.5) ~/ 15) % 24;

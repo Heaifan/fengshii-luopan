@@ -15,6 +15,17 @@ extension SanyuanTypeText on SanyuanType {
         return '地位';
     }
   }
+
+  String get shortLabel {
+    switch (this) {
+      case SanyuanType.heaven:
+        return '天';
+      case SanyuanType.human:
+        return '人';
+      case SanyuanType.earth:
+        return '地';
+    }
+  }
 }
 
 class SanyuanDragonCalculator {

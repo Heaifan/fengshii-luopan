@@ -99,21 +99,33 @@ class _CompassPageState extends State<CompassPage> {
   }
 
   double get _displayHeading {
-    final source =
-        _mode == CompassInputMode.manual ? _manualDegree : _smoothedHeading;
-    return applyCalibration(source, _calibrationOffset);
+    if (_mode == CompassInputMode.manual) return _manualDegree;
+    return applyCalibration(_smoothedHeading, _calibrationOffset);
   }
 
   void _calibrateToZero() {
-    final source =
-        _mode == CompassInputMode.manual ? _manualDegree : _rawHeading;
+    if (_mode == CompassInputMode.manual) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请切换到实时罗盘后设置当前为 0°')),
+      );
+      return;
+    }
+    final source = _rawHeading;
     setState(() => _calibrationOffset = source);
     _settings.saveCalibrationOffset(source);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(
+              '已将当前方向设为 0°，偏移 ${source.toStringAsFixed(0)}°')),
+    );
   }
 
   void _resetCalibration() {
     setState(() => _calibrationOffset = 0);
     _settings.saveCalibrationOffset(0);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('已重置校准，恢复真实罗盘角度')),
+    );
   }
 
   Future<void> _onHouseGuaChanged(String gua) async {
@@ -206,12 +218,6 @@ class _CompassPageState extends State<CompassPage> {
   // ======== TOP PANEL ========
 
   Widget _buildTopPanel(CompassReading reading, double discRotationDeg) {
-    final guaColor =
-        reading.isAuspicious ? const Color(0xFF2E7D32) : const Color(0xFFC43C32);
-    final magColor = _magneticStatus == MagneticStatus.normal
-        ? const Color(0xFF2E7D32)
-        : const Color(0xFFC43C32);
-
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -223,56 +229,45 @@ class _CompassPageState extends State<CompassPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row 1: large degree
-          Text(
-            '${reading.facingDegree.toStringAsFixed(0)}°',
-            style: const TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2A2118)),
-          ),
-          const SizedBox(height: 2),
-          // Row 2: compass direction
+          // Row 1: compass-style main reading
           Text(
             '${compassDirectionName(reading.facingDegree)} ${reading.facingDegree.toStringAsFixed(0)}°',
             style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF5A4724)),
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2A2118)),
           ),
-          const SizedBox(height: 2),
-          // Row 3: sitting-facing
+          const SizedBox(height: 4),
+          // Row 2: sitting-facing
           Text(
             reading.sittingFacingText,
             style: const TextStyle(
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF5A4724)),
           ),
-          const SizedBox(height: 4),
-          // Row 4: facing/sitting mountains (simple text, not button-like)
-          Text(
-            '向山：${reading.facingMountain}    坐山：${reading.sittingMountain}',
-            style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF8A7A5A)),
-          ),
           const SizedBox(height: 6),
-          // Row 5: gua, bazhai, magnetic
-          Wrap(
-            spacing: 14,
-            runSpacing: 2,
-            alignment: WrapAlignment.center,
-            children: [
-              _InfoChip('宫位', '${reading.facingGua}宫'),
-              _InfoChip('三元龙', reading.sanyuanType),
-              _InfoChip('八宅星',
-                  '${reading.bazhaiStar}(${reading.bazhaiRank})',
-                  valueColor: guaColor),
-              _InfoChip('吉凶', reading.isAuspicious ? '吉' : '凶',
-                  valueColor: guaColor),
-              _InfoChip('磁场', _magneticStatus.label, valueColor: magColor),
-            ],
+          // Row 3: merged rule summary
+          Text(
+            '${reading.facingGua}宫 · ${reading.fullSanyuanText} · ${reading.bazhaiStar}（${reading.bazhaiRank}）',
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: reading.isAuspicious
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFFC43C32)),
+          ),
+          const SizedBox(height: 4),
+          // Row 4: status
+          Text(
+            _calibrationOffset != 0
+                ? '${_magneticStatus.label} · 偏移 ${_calibrationOffset.toStringAsFixed(0)}°'
+                : _magneticStatus.label,
+            style: TextStyle(
+                fontSize: 13,
+                color: _magneticStatus == MagneticStatus.normal
+                    ? const Color(0xFF4CAF50)
+                    : const Color(0xFFC43C32)),
           ),
           // Debug row
           if (_showDebug) ...[
@@ -308,6 +303,12 @@ class _CompassPageState extends State<CompassPage> {
           _buildHouseGuaSelector(),
           const SizedBox(height: 4),
           _buildCalibrationButtons(),
+          const SizedBox(height: 4),
+          Text(
+            '校准偏移：${_calibrationOffset.toStringAsFixed(0)}°',
+            style: const TextStyle(
+                fontSize: 11, color: Color(0xFF9A8A6A)),
+          ),
           if (_mode == CompassInputMode.manual) _buildManualSlider(),
         ],
       ),
@@ -536,27 +537,3 @@ class _CompassPageState extends State<CompassPage> {
 
 // ======== tiny widgets ========
 
-class _InfoChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
-  const _InfoChip(this.label, this.value, {this.valueColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(children: [
-        TextSpan(
-            text: '$label ',
-            style:
-                const TextStyle(fontSize: 12, color: Color(0xFF9A8A6A))),
-        TextSpan(
-            text: value,
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: valueColor ?? const Color(0xFF2A2118))),
-      ]),
-    );
-  }
-}

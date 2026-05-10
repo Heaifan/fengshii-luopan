@@ -144,3 +144,110 @@ class _BubblePainter extends CustomPainter {
     return oldDelegate.angle != angle || oldDelegate.color != color;
   }
 }
+
+// ==========================================
+// Mini bubble for shoulder placement
+// ==========================================
+
+class MiniBubbleIndicator extends StatelessWidget {
+  final String label;
+  final double angle;
+
+  const MiniBubbleIndicator({
+    super.key,
+    required this.label,
+    required this.angle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final status = tiltStatus(angle);
+    final color = tiltColor(status);
+
+    return SizedBox(
+      width: 110,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 10, color: Color(0xFF7A6040))),
+              Text(
+                '${angle.abs().toStringAsFixed(1)}°',
+                style: TextStyle(fontSize: 10, color: color),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          CustomPaint(
+            size: const Size(110, 14),
+            painter: _MiniBubblePainter(angle: angle, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniBubblePainter extends CustomPainter {
+  final double angle;
+  final Color color;
+
+  _MiniBubblePainter({required this.angle, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final h = size.height;
+    final w = size.width;
+    final cy = h / 2;
+    const maxAngle = 10.0;
+
+    // Track
+    canvas.drawLine(
+      Offset(4, cy),
+      Offset(w - 4, cy),
+      Paint()
+        ..color = const Color(0xFFD8C8A0)
+        ..strokeWidth = 1,
+    );
+
+    // Center mark
+    canvas.drawLine(
+      Offset(w / 2, cy - 4),
+      Offset(w / 2, cy + 4),
+      Paint()
+        ..color = const Color(0xFFB99A61)
+        ..strokeWidth = 0.8,
+    );
+
+    // Safe zone
+    final safeW = (2.0 / maxAngle) * (w / 2 - 8);
+    canvas.drawRect(
+      Rect.fromCenter(
+          center: Offset(w / 2, cy), width: safeW * 2, height: h - 4),
+      Paint()..color = const Color(0x334CAF50),
+    );
+
+    // Bubble
+    final clamped = angle.clamp(-maxAngle, maxAngle);
+    final ratio = clamped / maxAngle;
+    final bx = w / 2 + ratio * (w / 2 - 8);
+    canvas.drawCircle(
+        Offset(bx, cy), 3.5, Paint()..color = color.withAlpha(200));
+    canvas.drawCircle(
+        Offset(bx, cy),
+        3.5,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MiniBubblePainter oldDelegate) {
+    return oldDelegate.angle != angle || oldDelegate.color != color;
+  }
+}

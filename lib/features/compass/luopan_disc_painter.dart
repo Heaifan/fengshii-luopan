@@ -2,25 +2,23 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 // ==========================================
-// 数据模型
+// Data models (extracted from old luopan_painter)
 // ==========================================
 
 class LuopanMountain {
   final String name;
-  final String sanyuan; // 天/人/地
-  final String wuxing; // 金木水火土
+  final String sanyuan;
+  final String wuxing;
   final Color color;
-
   const LuopanMountain(this.name, this.sanyuan, this.wuxing, this.color);
 }
 
 class LuopanGua {
   final String name;
   final String liuqin;
-  final double angle; // visual angle, 0=top
-  final List<bool> yaos; // true=阳, false=阴, top to bottom
+  final double angle;
+  final List<bool> yaos;
   final Color yaoColor;
-
   const LuopanGua(this.name, this.liuqin, this.angle, this.yaos, this.yaoColor);
 }
 
@@ -28,12 +26,11 @@ class BazhaiStarStyle {
   final String name;
   final String level;
   final Color color;
-
   const BazhaiStarStyle(this.name, this.level, this.color);
 }
 
 // ==========================================
-// 静态数据
+// Static luopan data
 // ==========================================
 
 const _tianColor = Color(0xFFc43c32);
@@ -78,7 +75,7 @@ const _dirs = [
   ('东南', 315.0, false),
 ];
 
-const _guaList = <LuopanGua>[
+const guaList = <LuopanGua>[
   LuopanGua('离', '中女', 0, [true, false, true], Color(0xFF111111)),
   LuopanGua('坤', '母亲', 45, [false, false, false], Color(0xFFd00000)),
   LuopanGua('兑', '少女', 90, [false, true, true], Color(0xFFd00000)),
@@ -89,7 +86,7 @@ const _guaList = <LuopanGua>[
   LuopanGua('巽', '长女', 315, [true, true, false], Color(0xFF111111)),
 ];
 
-// 八宅星表 (离宅默认)
+// Default: 离宅
 const _bazhaiStars = <String, String>{
   '离': '伏位', '震': '生气', '巽': '天医', '坎': '延年',
   '乾': '绝命', '兑': '五鬼', '坤': '六煞', '艮': '祸害',
@@ -107,23 +104,19 @@ const _starStyles = <String, BazhaiStarStyle>{
 };
 
 // ==========================================
-// LuopanPainter
+// LuopanDiscPainter — only the rotating disc
 // ==========================================
 
-class LuopanPainter extends CustomPainter {
-  final double heading; // 方位角 0-360, 0=北
+class LuopanDiscPainter extends CustomPainter {
   final String houseGua;
   final double scale;
-
   static const double baseSize = 1000.0;
 
-  LuopanPainter({
-    required this.heading,
+  LuopanDiscPainter({
     required this.houseGua,
     required this.scale,
   });
 
-  // 视觉角度转弧度: 0=顶部,顺时针
   double _visualAngleToRadian(double visualDeg) {
     return (visualDeg - 90) * math.pi / 180;
   }
@@ -145,13 +138,10 @@ class LuopanPainter extends CustomPainter {
     _drawGuaNames(canvas, s);
     _drawGuaSymbols(canvas, s);
     _drawCircles(canvas, s);
-    _drawCrosshair(canvas, s);
-    _drawNeedle(canvas, s);
 
     canvas.restore();
   }
 
-  // --- 底盘 ---
   void _drawDisc(Canvas canvas, double s) {
     canvas.drawCircle(
       Offset.zero,
@@ -160,7 +150,6 @@ class LuopanPainter extends CustomPainter {
     );
   }
 
-  // --- 同心圆 ---
   void _drawCircles(Canvas canvas, double s) {
     final paint = Paint()
       ..color = const Color(0xFFa07c50)
@@ -172,38 +161,28 @@ class LuopanPainter extends CustomPainter {
     }
   }
 
-  // --- 分割线 ---
   void _drawDividerLines(Canvas canvas, double s) {
     for (var i = 0; i < 24; i++) {
       final angle = 7.5 + i * 15.0;
-      final isBagua = (i % 3 == 1); // 八卦主分割线
+      final isBagua = (i % 3 == 1);
       final startR = isBagua ? 110.0 : 330.0;
       final endR = 488.0;
-
       final rad = _visualAngleToRadian(angle);
 
       canvas.save();
       canvas.rotate(rad);
-
       final linePaint = Paint()
         ..color = const Color(0xFFa07c50)
         ..strokeWidth = (isBagua ? 1.5 : 0.8) * s;
-
       canvas.drawLine(
-        Offset(0, startR * s),
-        Offset(0, endR * s),
-        linePaint,
-      );
+          Offset(0, startR * s), Offset(0, endR * s), linePaint);
       canvas.restore();
     }
   }
 
-  // --- 360° 刻度 + 数字 ---
   void _drawTicks(Canvas canvas, double s) {
-    // 分割线
     _drawDividerLines(canvas, s);
 
-    // 刻度
     for (var i = 0; i < 360; i++) {
       final rad = _visualAngleToRadian(i.toDouble());
       final h = (i % 10 == 0) ? 12.0 : (i % 5 == 0) ? 8.0 : 5.0;
@@ -220,60 +199,47 @@ class LuopanPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // 数字
     for (var i = 0; i < 360; i += 10) {
       final rad = _visualAngleToRadian(i.toDouble());
-
       canvas.save();
       canvas.rotate(rad);
       canvas.translate(0, -475 * s);
-
       final tp = TextPainter(
         text: TextSpan(
           text: '$i',
           style: TextStyle(
-            color: const Color(0xFFa07c50),
-            fontSize: 11 * s,
-            fontWeight: FontWeight.bold,
-          ),
+              color: const Color(0xFFa07c50),
+              fontSize: 11 * s,
+              fontWeight: FontWeight.bold),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      // 数字保持正向不旋转
       canvas.rotate(-rad);
       tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
       canvas.restore();
     }
   }
 
-  // --- 八大方向 ---
   void _drawDirections(Canvas canvas, double s) {
     for (final d in _dirs) {
       final rad = _visualAngleToRadian(d.$2);
-
       canvas.save();
       canvas.rotate(rad);
-
-      // 计算 _discRotation 对显示的影响：文字需随盘面旋转
-      // 此处不额外旋转方向文字，因为 HTML 中方向不随盘面转动(盘面旋转=罗盘旋转)
       final tp = TextPainter(
         text: TextSpan(
           text: d.$1,
           style: TextStyle(
-            color: const Color(0xFF222222),
-            fontSize: d.$3 ? 34 * s : 26 * s,
-            fontWeight: FontWeight.w900,
-          ),
+              color: const Color(0xFF222222),
+              fontSize: d.$3 ? 34 * s : 26 * s,
+              fontWeight: FontWeight.w900),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-
       tp.paint(canvas, Offset(-tp.width / 2, -455 * s - tp.height / 2));
       canvas.restore();
     }
   }
 
-  // --- 二十四山 ---
   void _drawMountains(Canvas canvas, double s) {
     for (var i = 0; i < _mountains.length; i++) {
       final m = _mountains[i];
@@ -283,30 +249,24 @@ class LuopanPainter extends CustomPainter {
       canvas.save();
       canvas.rotate(rad);
 
-      // 山名
       final nameTp = TextPainter(
         text: TextSpan(
-          text: m.name,
-          style: TextStyle(
-            color: m.color,
-            fontSize: 44 * s,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
+            text: m.name,
+            style: TextStyle(
+                color: m.color,
+                fontSize: 44 * s,
+                fontWeight: FontWeight.w900)),
         textDirection: TextDirection.ltr,
       )..layout();
 
-      // 属性
       final attrTp = TextPainter(
         text: TextSpan(
-          text: '${m.sanyuan}${m.wuxing}',
-          style: TextStyle(
-            color: m.color.withAlpha(217),
-            fontSize: 13 * s,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1 * s,
-          ),
-        ),
+            text: '${m.sanyuan}${m.wuxing}',
+            style: TextStyle(
+                color: m.color.withAlpha(217),
+                fontSize: 13 * s,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1 * s)),
         textDirection: TextDirection.ltr,
       )..layout();
 
@@ -321,51 +281,42 @@ class LuopanPainter extends CustomPainter {
     }
   }
 
-  // --- 八宅星 ---
   void _drawBazhaiStars(Canvas canvas, double s) {
-    final starMap =
-        _bazhaiStars; // TODO: 支持切换宅卦时查不同表
-
-    for (final g in _guaList) {
+    for (final g in guaList) {
       final rad = _visualAngleToRadian(g.angle);
-      final starName = starMap[g.name] ?? '';
+      final starName = _bazhaiStars[g.name] ?? '';
       final style = _starStyles[starName];
       if (style == null) continue;
 
       canvas.save();
       canvas.rotate(rad);
 
-      // 星名
       final nameTp = TextPainter(
         text: TextSpan(
-          text: style.name,
-          style: TextStyle(
-            color: style.color,
-            fontSize: 36 * s,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2 * s,
-          ),
-        ),
+            text: style.name,
+            style: TextStyle(
+                color: style.color,
+                fontSize: 36 * s,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2 * s)),
         textDirection: TextDirection.ltr,
       )..layout();
 
-      // 等级
       final levelTp = TextPainter(
         text: TextSpan(
-          text: '(${style.level})',
-          style: TextStyle(
-            color: const Color(0xBF644B37),
-            fontSize: 16 * s,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+            text: '(${style.level})',
+            style: TextStyle(
+                color: const Color(0xBF644B37),
+                fontSize: 16 * s,
+                fontWeight: FontWeight.w700)),
         textDirection: TextDirection.ltr,
       )..layout();
 
       final totalW = nameTp.width + levelTp.width + 2 * s;
       final startX = -totalW / 2;
 
-      nameTp.paint(canvas, Offset(startX, -290 * s - nameTp.height / 2));
+      nameTp.paint(
+          canvas, Offset(startX, -290 * s - nameTp.height / 2));
       levelTp.paint(canvas,
           Offset(startX + nameTp.width + 2 * s, -290 * s - levelTp.height / 2));
 
@@ -373,36 +324,30 @@ class LuopanPainter extends CustomPainter {
     }
   }
 
-  // --- 卦名六亲 ---
   void _drawGuaNames(Canvas canvas, double s) {
-    for (final g in _guaList) {
+    for (final g in guaList) {
       final rad = _visualAngleToRadian(g.angle);
-
       canvas.save();
       canvas.rotate(rad);
 
       final nameTp = TextPainter(
         text: TextSpan(
-          text: g.name,
-          style: TextStyle(
-            color: const Color(0xFF111111),
-            fontSize: 42 * s,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
+            text: g.name,
+            style: TextStyle(
+                color: const Color(0xFF111111),
+                fontSize: 42 * s,
+                fontWeight: FontWeight.w900)),
         textDirection: TextDirection.ltr,
       )..layout();
 
       final liuqinTp = TextPainter(
         text: TextSpan(
-          text: g.liuqin,
-          style: TextStyle(
-            color: const Color(0xD94A3B2C),
-            fontSize: 14 * s,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 2 * s,
-          ),
-        ),
+            text: g.liuqin,
+            style: TextStyle(
+                color: const Color(0xD94A3B2C),
+                fontSize: 14 * s,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2 * s)),
         textDirection: TextDirection.ltr,
       )..layout();
 
@@ -417,11 +362,9 @@ class LuopanPainter extends CustomPainter {
     }
   }
 
-  // --- 卦象 ---
   void _drawGuaSymbols(Canvas canvas, double s) {
-    for (final g in _guaList) {
+    for (final g in guaList) {
       final rad = _visualAngleToRadian(g.angle);
-
       canvas.save();
       canvas.rotate(rad);
 
@@ -435,7 +378,6 @@ class LuopanPainter extends CustomPainter {
         final yaoY = -140 * s - totalH * s / 2 + j * (yaoH + yaoGap) * s;
 
         if (isYang) {
-          // 阳爻：完整横线
           canvas.drawRect(
             Rect.fromCenter(
                 center: Offset(0, yaoY),
@@ -444,7 +386,6 @@ class LuopanPainter extends CustomPainter {
             Paint()..color = g.yaoColor,
           );
         } else {
-          // 阴爻：左右两段
           const gapW = 14.0;
           const segW = (yaoW - gapW) / 2;
           canvas.drawRect(
@@ -463,85 +404,13 @@ class LuopanPainter extends CustomPainter {
           );
         }
       }
-
       canvas.restore();
     }
   }
 
-  // --- 十字线 ---
-  void _drawCrosshair(Canvas canvas, double s) {
-    final paint = Paint()
-      ..color = const Color(0xA6d00000)
-      ..strokeWidth = 1.0 * s;
-
-    canvas.drawLine(Offset(0, -500 * s), Offset(0, 500 * s), paint);
-    canvas.drawLine(Offset(-500 * s, 0), Offset(500 * s, 0), paint);
-  }
-
-  // --- 指针 + 天池 ---
-  void _drawNeedle(Canvas canvas, double s) {
-    // 指针主体
-    final needlePaint = Paint()
-      ..color = const Color(0xFF1a1a1a)
-      ..strokeWidth = 2.5 * s;
-
-    canvas.drawLine(
-      Offset(0, -190 * s),
-      Offset(0, 190 * s),
-      needlePaint,
-    );
-
-    // 双红点
-    final dotPaint = Paint()..color = const Color(0xFFd00000);
-    const dotR = 4.0;
-    canvas.drawCircle(Offset(-8 * s, 170 * s), dotR * s, dotPaint);
-    canvas.drawCircle(Offset(8 * s, 170 * s), dotR * s, dotPaint);
-
-    // 中心轴
-    canvas.drawCircle(Offset.zero, 7 * s,
-        Paint()..color = const Color(0xFF444444));
-    canvas.drawCircle(Offset.zero, 5 * s,
-        Paint()..color = const Color(0xFF222222));
-  }
-
   @override
-  bool shouldRepaint(covariant LuopanPainter oldDelegate) {
-    return oldDelegate.heading != heading ||
-        oldDelegate.houseGua != houseGua ||
+  bool shouldRepaint(covariant LuopanDiscPainter oldDelegate) {
+    return oldDelegate.houseGua != houseGua ||
         oldDelegate.scale != scale;
-  }
-}
-
-class LuopanDial extends StatelessWidget {
-  final double heading;
-  final String houseGua;
-
-  const LuopanDial({
-    super.key,
-    required this.heading,
-    required this.houseGua,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size =
-            math.min(constraints.maxWidth, constraints.maxHeight);
-        final scale = size / LuopanPainter.baseSize;
-
-        return Transform.rotate(
-          angle: heading * math.pi / 180,
-          child: CustomPaint(
-            size: Size(size, size),
-            painter: LuopanPainter(
-              heading: heading,
-              houseGua: houseGua,
-              scale: scale,
-            ),
-          ),
-        );
-      },
-    );
   }
 }

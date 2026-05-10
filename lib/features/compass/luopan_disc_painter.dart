@@ -118,7 +118,7 @@ class LuopanDiscPainter extends CustomPainter {
   });
 
   double _visualAngleToRadian(double visualDeg) {
-    return (visualDeg - 90) * math.pi / 180;
+    return visualDeg * math.pi / 180;
   }
 
   @override

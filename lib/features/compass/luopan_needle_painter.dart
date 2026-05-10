@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Rotating needle that follows the disc to always point at 午 mountain.
 class LuopanNeedlePainter extends CustomPainter {
   final double scale;
-  static const double baseSize = 1000.0;
 
   LuopanNeedlePainter({required this.scale});
 
@@ -21,20 +19,21 @@ class LuopanNeedlePainter extends CustomPainter {
       ..strokeWidth = 2.5 * s
       ..strokeCap = StrokeCap.round;
 
-    // Pointing to 午 (top of disc): south end longer, north end shorter
-    canvas.drawLine(Offset(0, 20 * s), Offset(0, -100 * s), needlePaint);
-    canvas.drawLine(Offset(0, -20 * s), Offset(0, 50 * s), needlePaint);
-
-    // Double red dots near south end
-    final dotPaint = Paint()..color = const Color(0xFFd00000);
-    canvas.drawCircle(Offset(-6 * s, -92 * s), 3.5 * s, dotPaint);
-    canvas.drawCircle(Offset(6 * s, -92 * s), 3.5 * s, dotPaint);
+    // Head points to 午 (top of disc), tail at bottom, one continuous line
+    final head = Offset(0, -100 * s);
+    final tail = Offset(0, 55 * s);
+    canvas.drawLine(tail, head, needlePaint);
 
     // Center pivot
     canvas.drawCircle(
         Offset.zero, 7 * s, Paint()..color = const Color(0xFF444444));
     canvas.drawCircle(
         Offset.zero, 5 * s, Paint()..color = const Color(0xFF222222));
+
+    // Double red dots at tail (bottom end)
+    final dotPaint = Paint()..color = const Color(0xFFd00000);
+    canvas.drawCircle(Offset(-6 * s, 48 * s), 3.5 * s, dotPaint);
+    canvas.drawCircle(Offset(6 * s, 48 * s), 3.5 * s, dotPaint);
 
     canvas.restore();
   }

@@ -364,26 +364,38 @@ class _CompassPageState extends State<CompassPage> {
                 color: Color(0xFF5A4724)),
           ),
           const SizedBox(height: 4),
-          // Row 3: table header
-          Row(
-            children: const [
-              _TableHeader('宫位', flex: 2),
-              _TableHeader('向山', flex: 3),
-              _TableHeader('八宅', flex: 5),
-            ],
+          // Row 3: table header (centered, fixed width)
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                SizedBox(width: 52, child: _TableHeader('宫位')),
+                SizedBox(width: 74, child: _TableHeader('向山')),
+                SizedBox(width: 130, child: _TableHeader('八宅')),
+              ],
+            ),
           ),
           const SizedBox(height: 2),
-          // Row 4: table values
-          Row(
-            children: [
-              _TableCell('${reading.facingGua}宫', flex: 2),
-              _TableCell(reading.fullSanyuanText, flex: 3,
-                  color: const Color(0xFF2A2118)),
-              _TableCell(bazhaiText, flex: 5,
-                  color: reading.isAuspicious
-                      ? const Color(0xFF2E7D32)
-                      : const Color(0xFFC43C32)),
-            ],
+          // Row 4: table values (centered, fixed width)
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                    width: 52,
+                    child: _TableCell('${reading.facingGua}宫')),
+                SizedBox(
+                    width: 74,
+                    child: _TableCell(reading.fullSanyuanText,
+                        color: const Color(0xFF2A2118))),
+                SizedBox(
+                    width: 130,
+                    child: _TableCell(bazhaiText,
+                        color: reading.isAuspicious
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFFC43C32))),
+              ],
+            ),
           ),
           const SizedBox(height: 4),
           // Row 5: status
@@ -413,12 +425,15 @@ class _CompassPageState extends State<CompassPage> {
 
   Widget _buildShoulderBubbles() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Left: horizontal level indicator
           MiniBubbleIndicator(label: '水平', angle: _tiltH),
-          MiniBubbleIndicator(label: '俯仰', angle: _tiltV),
+          // Right: vertical tilt indicator
+          VerticalMiniBubble(label: '俯仰', angle: _tiltV),
         ],
       ),
     );
@@ -434,7 +449,9 @@ class _CompassPageState extends State<CompassPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // House gua + calibration bar
+          const Text('宅卦选择',
+              style: TextStyle(fontSize: 11, color: Color(0xFF9A8A6A))),
+          const SizedBox(height: 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -527,34 +544,28 @@ class _CompassPageState extends State<CompassPage> {
 
 class _TableHeader extends StatelessWidget {
   final String text;
-  final int flex;
-  const _TableHeader(this.text, {required this.flex});
+  const _TableHeader(this.text);
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(text,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF9A8A6A))),
-    );
+    return Text(text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 11, color: Color(0xFF9A8A6A)));
   }
 }
 
 class _TableCell extends StatelessWidget {
   final String text;
-  final int flex;
   final Color? color;
-  const _TableCell(this.text, {required this.flex, this.color});
+  const _TableCell(this.text, {this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: color ?? const Color(0xFF2A2118))),
-    );
+    return Text(text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: color ?? const Color(0xFF2A2118)));
   }
 }

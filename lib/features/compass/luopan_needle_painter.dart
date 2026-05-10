@@ -19,9 +19,9 @@ class LuopanNeedlePainter extends CustomPainter {
       ..strokeWidth = 2.5 * s
       ..strokeCap = StrokeCap.round;
 
-    // Head points to 午 (top of disc), tail at bottom, one continuous line
-    final head = Offset(0, -100 * s);
-    final tail = Offset(0, 55 * s);
+    // Symmetric needle: head points 午, centered on pivot
+    final head = Offset(0, -72 * s);
+    final tail = Offset(0, 72 * s);
     canvas.drawLine(tail, head, needlePaint);
 
     // Center pivot
@@ -30,10 +30,10 @@ class LuopanNeedlePainter extends CustomPainter {
     canvas.drawCircle(
         Offset.zero, 5 * s, Paint()..color = const Color(0xFF222222));
 
-    // Double red dots at tail (bottom end)
+    // Double red dots at tail
     final dotPaint = Paint()..color = const Color(0xFFd00000);
-    canvas.drawCircle(Offset(-6 * s, 48 * s), 3.5 * s, dotPaint);
-    canvas.drawCircle(Offset(6 * s, 48 * s), 3.5 * s, dotPaint);
+    canvas.drawCircle(Offset(-6 * s, 60 * s), 3.5 * s, dotPaint);
+    canvas.drawCircle(Offset(6 * s, 60 * s), 3.5 * s, dotPaint);
 
     canvas.restore();
   }

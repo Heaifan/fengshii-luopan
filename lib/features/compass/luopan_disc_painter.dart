@@ -155,7 +155,7 @@ class LuopanDiscPainter extends CustomPainter {
       ..color = const Color(0xFFa07c50)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5 * s;
-    const radii = [500, 410, 330, 250, 170, 110];
+    const radii = [500, 410, 320, 230, 145, 75];
     for (final r in radii) {
       canvas.drawCircle(Offset.zero, r * s, paint);
     }
@@ -165,7 +165,7 @@ class LuopanDiscPainter extends CustomPainter {
     for (var i = 0; i < 24; i++) {
       final angle = 7.5 + i * 15.0;
       final isBagua = (i % 3 == 1);
-      final startR = isBagua ? 110.0 : 330.0;
+      final startR = isBagua ? 75.0 : 320.0;
       final endR = 488.0;
       final rad = _visualAngleToRadian(angle);
 
@@ -254,7 +254,7 @@ class LuopanDiscPainter extends CustomPainter {
             text: m.name,
             style: TextStyle(
                 color: m.color,
-                fontSize: 44 * s,
+                fontSize: 46 * s,
                 fontWeight: FontWeight.w900)),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -271,7 +271,7 @@ class LuopanDiscPainter extends CustomPainter {
       )..layout();
 
       final totalH = nameTp.height + attrTp.height + 2 * s;
-      final nameY = -370 * s - totalH / 2;
+      final nameY = -365 * s - totalH / 2;
       final attrY = nameY + nameTp.height + 2 * s;
 
       nameTp.paint(canvas, Offset(-nameTp.width / 2, nameY));
@@ -296,7 +296,7 @@ class LuopanDiscPainter extends CustomPainter {
             text: style.name,
             style: TextStyle(
                 color: style.color,
-                fontSize: 36 * s,
+                fontSize: 38 * s,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 2 * s)),
         textDirection: TextDirection.ltr,
@@ -316,9 +316,9 @@ class LuopanDiscPainter extends CustomPainter {
       final startX = -totalW / 2;
 
       nameTp.paint(
-          canvas, Offset(startX, -290 * s - nameTp.height / 2));
+          canvas, Offset(startX, -275 * s - nameTp.height / 2));
       levelTp.paint(canvas,
-          Offset(startX + nameTp.width + 2 * s, -290 * s - levelTp.height / 2));
+          Offset(startX + nameTp.width + 2 * s, -275 * s - levelTp.height / 2));
 
       canvas.restore();
     }
@@ -335,7 +335,7 @@ class LuopanDiscPainter extends CustomPainter {
             text: g.name,
             style: TextStyle(
                 color: const Color(0xFF111111),
-                fontSize: 42 * s,
+                fontSize: 44 * s,
                 fontWeight: FontWeight.w900)),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -352,7 +352,7 @@ class LuopanDiscPainter extends CustomPainter {
       )..layout();
 
       final totalH = nameTp.height + liuqinTp.height + 2 * s;
-      final nameY = -210 * s - totalH / 2;
+      final nameY = -188 * s - totalH / 2;
       final liuqinY = nameY + nameTp.height + 2 * s;
 
       nameTp.paint(canvas, Offset(-nameTp.width / 2, nameY));
@@ -368,14 +368,14 @@ class LuopanDiscPainter extends CustomPainter {
       canvas.save();
       canvas.rotate(rad);
 
-      const yaoW = 48.0;
+      const yaoW = 50.0;
       const yaoH = 7.0;
       const yaoGap = 5.0;
       final totalH = yaoH * 3 + yaoGap * 2;
 
       for (var j = 0; j < 3; j++) {
         final isYang = g.yaos[j];
-        final yaoY = -140 * s - totalH * s / 2 + j * (yaoH + yaoGap) * s;
+        final yaoY = -110 * s - totalH * s / 2 + j * (yaoH + yaoGap) * s;
 
         if (isYang) {
           canvas.drawRect(

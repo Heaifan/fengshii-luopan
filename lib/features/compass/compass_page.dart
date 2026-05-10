@@ -8,6 +8,8 @@ import '../../fengshui/compass_reading_builder.dart';
 import 'compass_sensor_service.dart';
 import 'compass_status.dart';
 import 'luopan_dial.dart';
+import 'tilt_service.dart';
+import 'bubble_indicator.dart';
 import '../../fengshui/bazhai_you_nian_table.dart';
 
 enum CompassInputMode { sensor, manual }
@@ -22,6 +24,7 @@ class CompassPage extends StatefulWidget {
 class _CompassPageState extends State<CompassPage> {
   final _settings = SettingsStorage();
   final _sensor = const CompassSensorService();
+  final _tilt = TiltService();
 
   CompassInputMode _mode = CompassInputMode.manual;
 
@@ -32,14 +35,17 @@ class _CompassPageState extends State<CompassPage> {
   bool _smoothedInitialized = false;
 
   double _manualDegree = 161;
-
   String _houseGua = '乾';
 
   final List<double> _recentHeadings = [];
   static const int _stabilityWindow = 10;
   MagneticStatus _magneticStatus = MagneticStatus.normal;
 
+  double _tiltH = 0;
+  double _tiltV = 0;
+
   StreamSubscription<double?>? _headingSub;
+  StreamSubscription<TiltData>? _tiltSub;
   bool _settingsLoaded = false;
   bool _showDebug = false;
 
@@ -48,12 +54,24 @@ class _CompassPageState extends State<CompassPage> {
     super.initState();
     _loadSettings();
     _startSensor();
+    _startTilt();
   }
 
   @override
   void dispose() {
     _headingSub?.cancel();
+    _tiltSub?.cancel();
     super.dispose();
+  }
+
+  void _startTilt() {
+    _tiltSub = _tilt.tiltStream.listen((data) {
+      if (!mounted) return;
+      setState(() {
+        _tiltH = data.horizontalAngle;
+        _tiltV = data.verticalAngle;
+      });
+    });
   }
 
   Future<void> _loadSettings() async {
@@ -207,6 +225,8 @@ class _CompassPageState extends State<CompassPage> {
                 ),
               ),
             ),
+            // ---- Tilt calibration ----
+            _buildTiltSection(),
             // ---- Bottom controls ----
             _buildBottomPanel(reading, hasHeading),
           ],
@@ -290,6 +310,66 @@ class _CompassPageState extends State<CompassPage> {
   }
 
   // ======== BOTTOM PANEL ========
+
+  // ======== TILT SECTION ========
+
+  String get _combinedCalibrationLabel {
+    final hStatus = tiltStatus(_tiltH);
+    final vStatus = tiltStatus(_tiltV);
+    if (hStatus == TiltStatus.good && vStatus == TiltStatus.good) {
+      return '校准良好';
+    }
+    if (hStatus == TiltStatus.bad || vStatus == TiltStatus.bad) {
+      return '姿态偏差较大，读数可能不准';
+    }
+    return '轻微偏移，建议微调';
+  }
+
+  Color get _combinedCalibrationColor {
+    final hStatus = tiltStatus(_tiltH);
+    final vStatus = tiltStatus(_tiltV);
+    if (hStatus == TiltStatus.good && vStatus == TiltStatus.good) {
+      return const Color(0xFF4CAF50);
+    }
+    if (hStatus == TiltStatus.bad || vStatus == TiltStatus.bad) {
+      return const Color(0xFFEF5350);
+    }
+    return const Color(0xFFFFC107);
+  }
+
+  Widget _buildTiltSection() {
+    final statusColor = _combinedCalibrationColor;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0E8D5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFD8C8A0)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Text('校准状态：',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF7A6040))),
+              Text(_combinedCalibrationLabel,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: statusColor)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          BubbleIndicator(label: '水平', angle: _tiltH),
+          const SizedBox(height: 2),
+          BubbleIndicator(label: '垂直', angle: _tiltV),
+        ],
+      ),
+    );
+  }
 
   Widget _buildBottomPanel(CompassReading reading, bool hasHeading) {
     return Container(

@@ -166,7 +166,7 @@ class _CompassPageState extends State<CompassPage> {
       appBar: AppBar(
         title: GestureDetector(
           onLongPress: () => setState(() => _showDebug = !_showDebug),
-          child: const Text('测向工具'),
+          child: const Text('风水荷盘'),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFFc8b898),
@@ -222,40 +222,25 @@ class _CompassPageState extends State<CompassPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row 1: degree + facing/sitting
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '${reading.facingDegree.toStringAsFixed(0)}°',
-                style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2A2118)),
-              ),
-              const SizedBox(width: 16),
-              _Tag(
-                  '向${reading.facingMountain}',
-                  const Color(0xFFF5E7C3),
-                  const Color(0xFF2A2118)),
-              const SizedBox(width: 6),
-              _Tag(
-                  '坐${reading.sittingMountain}',
-                  const Color(0xFFF5E7C3),
-                  const Color(0xFF2A2118)),
-            ],
+          // Row 1: large degree
+          Text(
+            '${reading.facingDegree.toStringAsFixed(0)}°',
+            style: const TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2A2118)),
           ),
-          const SizedBox(height: 4),
-          // Row 1.5: compass direction description
+          const SizedBox(height: 2),
+          // Row 2: compass direction
           Text(
             '${compassDirectionName(reading.facingDegree)} ${reading.facingDegree.toStringAsFixed(0)}°',
             style: const TextStyle(
-                fontSize: 16,
+                fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF5A4724)),
           ),
           const SizedBox(height: 2),
-          // Row 2: sitting-facing text
+          // Row 3: sitting-facing
           Text(
             reading.sittingFacingText,
             style: const TextStyle(
@@ -263,8 +248,16 @@ class _CompassPageState extends State<CompassPage> {
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF5A4724)),
           ),
+          const SizedBox(height: 4),
+          // Row 4: facing/sitting mountains (simple text, not button-like)
+          Text(
+            '向山：${reading.facingMountain}    坐山：${reading.sittingMountain}',
+            style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF8A7A5A)),
+          ),
           const SizedBox(height: 6),
-          // Row 3: gua, bazhai, magnetic
+          // Row 5: gua, bazhai, magnetic
           Wrap(
             spacing: 14,
             runSpacing: 2,
@@ -325,6 +318,11 @@ class _CompassPageState extends State<CompassPage> {
         ChoiceChip(
           selected: _mode == CompassInputMode.sensor,
           selectedColor: const Color(0xFF5A4724),
+          backgroundColor: const Color(0xFFF0E8D5),
+          side: BorderSide(
+              color: _mode == CompassInputMode.sensor
+                  ? const Color(0xFF5A4724)
+                  : const Color(0xFFB99A61)),
           labelStyle: TextStyle(
               color:
                   _mode == CompassInputMode.sensor ? Colors.white : const Color(0xFF5A4724),
@@ -336,6 +334,11 @@ class _CompassPageState extends State<CompassPage> {
         ChoiceChip(
           selected: _mode == CompassInputMode.manual,
           selectedColor: const Color(0xFF5A4724),
+          backgroundColor: const Color(0xFFF0E8D5),
+          side: BorderSide(
+              color: _mode == CompassInputMode.manual
+                  ? const Color(0xFF5A4724)
+                  : const Color(0xFFB99A61)),
           labelStyle: TextStyle(
               color:
                   _mode == CompassInputMode.manual ? Colors.white : const Color(0xFF5A4724),
@@ -432,27 +435,6 @@ class _CompassPageState extends State<CompassPage> {
 }
 
 // ======== tiny widgets ========
-
-class _Tag extends StatelessWidget {
-  final String text;
-  final Color bg;
-  final Color fg;
-  const _Tag(this.text, this.bg, this.fg);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 15, fontWeight: FontWeight.bold, color: fg)),
-    );
-  }
-}
 
 class _InfoChip extends StatelessWidget {
   final String label;

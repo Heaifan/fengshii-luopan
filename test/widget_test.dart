@@ -16,6 +16,6 @@ void main() {
       const ProviderScope(child: BazhaiCompassApp()),
     );
     await tester.pumpAndSettle();
-    expect(find.text('测向工具'), findsOneWidget);
+    expect(find.text('风水荷盘'), findsOneWidget);
   });
 }

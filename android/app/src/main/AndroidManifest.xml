@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="bazhai_compass"
+        android:label="风水荷盘"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

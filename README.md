@@ -1,4 +1,4 @@
-# 测向工具 (Bazhai Compass)
+# 风水荷盘 (Bazhai Compass)
 
 自用风水罗盘 App，用于看房现场快速测向、判断二十四山和八宅八星。
 

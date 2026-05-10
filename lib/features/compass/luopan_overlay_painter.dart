@@ -18,7 +18,6 @@ class LuopanFixedOverlayPainter extends CustomPainter {
     canvas.translate(cx, cy);
 
     _drawCrosshair(canvas, s);
-    _drawNeedle(canvas, s);
     _drawTriangle(canvas, s);
 
     canvas.restore();
@@ -31,30 +30,6 @@ class LuopanFixedOverlayPainter extends CustomPainter {
 
     canvas.drawLine(Offset(0, -510 * s), Offset(0, 510 * s), paint);
     canvas.drawLine(Offset(-510 * s, 0), Offset(510 * s, 0), paint);
-  }
-
-  void _drawNeedle(Canvas canvas, double s) {
-    // Needle within the inner pool (radius 110), pointing to 午 (top).
-    // South-pointing half is longer, north-pointing half is shorter.
-    final needlePaint = Paint()
-      ..color = const Color(0xFF1a1a1a)
-      ..strokeWidth = 2.5 * s
-      ..strokeCap = StrokeCap.round;
-
-    // Pointing to 午: top half longer (south), bottom half shorter (north)
-    canvas.drawLine(Offset(0, 20 * s), Offset(0, -100 * s), needlePaint);
-    canvas.drawLine(Offset(0, -20 * s), Offset(0, 50 * s), needlePaint);
-
-    // Double red dots (south end)
-    final dotPaint = Paint()..color = const Color(0xFFd00000);
-    canvas.drawCircle(Offset(-6 * s, -92 * s), 3.5 * s, dotPaint);
-    canvas.drawCircle(Offset(6 * s, -92 * s), 3.5 * s, dotPaint);
-
-    // Center pivot
-    canvas.drawCircle(
-        Offset.zero, 7 * s, Paint()..color = const Color(0xFF444444));
-    canvas.drawCircle(
-        Offset.zero, 5 * s, Paint()..color = const Color(0xFF222222));
   }
 
   void _drawTriangle(Canvas canvas, double s) {

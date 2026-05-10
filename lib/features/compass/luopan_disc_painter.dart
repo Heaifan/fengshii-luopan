@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../fengshui/bazhai_you_nian_table.dart';
 
 // ==========================================
 // Data models (extracted from old luopan_painter)
@@ -86,22 +87,7 @@ const guaList = <LuopanGua>[
   LuopanGua('巽', '长女', 315, [true, true, false], Color(0xFF111111)),
 ];
 
-// Default: 离宅
-const _bazhaiStars = <String, String>{
-  '离': '伏位', '震': '生气', '巽': '天医', '坎': '延年',
-  '乾': '绝命', '兑': '五鬼', '坤': '六煞', '艮': '祸害',
-};
-
-const _starStyles = <String, BazhaiStarStyle>{
-  '生气': BazhaiStarStyle('生气', '一吉', Color(0xFF2e7d32)),
-  '天医': BazhaiStarStyle('天医', '二吉', Color(0xFFb07d3b)),
-  '延年': BazhaiStarStyle('延年', '三吉', Color(0xFFb8860b)),
-  '伏位': BazhaiStarStyle('伏位', '四吉', Color(0xFF2e7d32)),
-  '绝命': BazhaiStarStyle('绝命', '一凶', Color(0xFFb8860b)),
-  '五鬼': BazhaiStarStyle('五鬼', '二凶', Color(0xFFc43c32)),
-  '六煞': BazhaiStarStyle('六煞', '三凶', Color(0xFF2a5d84)),
-  '祸害': BazhaiStarStyle('祸害', '四凶', Color(0xFFb07d3b)),
-};
+// Star styles now come from bazhai_you_nian_table.dart dynamically
 
 // ==========================================
 // LuopanDiscPainter — only the rotating disc
@@ -284,18 +270,20 @@ class LuopanDiscPainter extends CustomPainter {
   void _drawBazhaiStars(Canvas canvas, double s) {
     for (final g in guaList) {
       final rad = _visualAngleToRadian(g.angle);
-      final starName = _bazhaiStars[g.name] ?? '';
-      final style = _starStyles[starName];
-      if (style == null) continue;
+      final starName = getBazhaiStar(houseGua: houseGua, palaceGua: g.name);
+      if (starName.isEmpty) continue;
+      final meta = bazhaiStarMetaMap[starName];
+      if (meta == null) continue;
+      final rank = getBazhaiStarRank(houseGua: houseGua, starName: starName);
 
       canvas.save();
       canvas.rotate(rad);
 
       final nameTp = TextPainter(
         text: TextSpan(
-            text: style.name,
+            text: meta.name,
             style: TextStyle(
-                color: style.color,
+                color: meta.color,
                 fontSize: 38 * s,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 2 * s)),
@@ -304,7 +292,7 @@ class LuopanDiscPainter extends CustomPainter {
 
       final levelTp = TextPainter(
         text: TextSpan(
-            text: '(${style.level})',
+            text: '($rank)',
             style: TextStyle(
                 color: const Color(0xBF644B37),
                 fontSize: 16 * s,

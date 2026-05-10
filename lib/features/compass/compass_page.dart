@@ -8,6 +8,7 @@ import '../../fengshui/compass_reading_builder.dart';
 import 'compass_sensor_service.dart';
 import 'compass_status.dart';
 import 'luopan_dial.dart';
+import '../../fengshui/bazhai_you_nian_table.dart';
 
 enum CompassInputMode { sensor, manual }
 
@@ -265,7 +266,9 @@ class _CompassPageState extends State<CompassPage> {
             children: [
               _InfoChip('宫位', '${reading.facingGua}宫'),
               _InfoChip('三元龙', reading.sanyuanType),
-              _InfoChip('八宅星', reading.bazhaiStar, valueColor: guaColor),
+              _InfoChip('八宅星',
+                  '${reading.bazhaiStar}(${reading.bazhaiRank})',
+                  valueColor: guaColor),
               _InfoChip('吉凶', reading.isAuspicious ? '吉' : '凶',
                   valueColor: guaColor),
               _InfoChip('磁场', _magneticStatus.label, valueColor: magColor),
@@ -350,28 +353,125 @@ class _CompassPageState extends State<CompassPage> {
     );
   }
 
+  void _showHouseGuaPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return SafeArea(
+          child: FractionallySizedBox(
+            heightFactor: 0.58,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF7EEDB),
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFB99A61),
+                      borderRadius:
+                          BorderRadius.all(Radius.circular(999)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('选择宅卦',
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2A2118))),
+                  const SizedBox(height: 8),
+                  const Divider(
+                      height: 1, color: Color(0xFFB99A61)),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      children: BazhaiCalculator.guas.map((g) {
+                        final selected = g == _houseGua;
+                        final group = getHouseGroup(g);
+                        return ListTile(
+                          dense: true,
+                          visualDensity:
+                              const VisualDensity(vertical: -1),
+                          tileColor: selected
+                              ? const Color(0xFFE9D8AE)
+                              : null,
+                          title: Text(
+                            '$g宅',
+                            style: TextStyle(
+                              fontWeight: selected
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
+                              color: const Color(0xFF2A2118),
+                            ),
+                          ),
+                          subtitle: Text(
+                            group,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF7A6040)),
+                          ),
+                          trailing: selected
+                              ? const Icon(Icons.check,
+                                  color: Color(0xFF5A4724),
+                                  size: 20)
+                              : null,
+                          onTap: () {
+                            _onHouseGuaChanged(g);
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildHouseGuaSelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('宅卦：',
-            style:
-                TextStyle(fontSize: 13, color: Color(0xFF7A6040))),
-        DropdownButton<String>(
-          value: _houseGua,
-          underline: const SizedBox(),
-          style: const TextStyle(fontSize: 13, color: Color(0xFF2A2118)),
-          items: BazhaiCalculator.guas
-              .map((g) => DropdownMenuItem(
-                    value: g,
-                    child: Text('$g宅'),
-                  ))
-              .toList(),
-          onChanged: (v) {
-            if (v != null) _onHouseGuaChanged(v);
-          },
+    final group = getHouseGroup(_houseGua);
+    return GestureDetector(
+      onTap: _showHouseGuaPicker,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0E8D5),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFB99A61)),
         ),
-      ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$_houseGua宅',
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2A2118)),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              group,
+              style: const TextStyle(
+                  fontSize: 12, color: Color(0xFF7A6040)),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.arrow_drop_down,
+                color: Color(0xFF7A6040), size: 18),
+          ],
+        ),
+      ),
     );
   }
 

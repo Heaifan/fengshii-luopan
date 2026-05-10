@@ -13,6 +13,7 @@ class CompassReading {
   final String sittingGua;
   final String sanyuanType;
   final String bazhaiStar;
+  final String bazhaiRank;
   final bool isAuspicious;
   final String sittingFacingText;
 
@@ -25,6 +26,7 @@ class CompassReading {
     required this.sittingGua,
     required this.sanyuanType,
     required this.bazhaiStar,
+    required this.bazhaiRank,
     required this.isAuspicious,
     required this.sittingFacingText,
   });
@@ -60,6 +62,7 @@ class CompassReadingBuilder {
       sittingGua: sittingGua,
       sanyuanType: sanyuan.label,
       bazhaiStar: bazhai.star,
+      bazhaiRank: bazhai.rank,
       isAuspicious: bazhai.isAuspicious,
       sittingFacingText: '坐${sitting.mountain}向${facing.mountain}',
     );

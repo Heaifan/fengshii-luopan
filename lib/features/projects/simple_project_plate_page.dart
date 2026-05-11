@@ -217,7 +217,7 @@ class _SimpleProjectPlatePageState
         children: const [
           Expanded(
             child: Text(
-              '天：八宅游年',
+              '山：元龙五行',
               style: TextStyle(
                 color: AppTheme.textPrimary,
                 fontSize: 13,
@@ -227,7 +227,7 @@ class _SimpleProjectPlatePageState
           ),
           Expanded(
             child: Text(
-              '地：归宫归山',
+              '宫：八宅游年',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppTheme.textPrimary,
@@ -238,7 +238,7 @@ class _SimpleProjectPlatePageState
           ),
           Expanded(
             child: Text(
-              '人：测点用途',
+              '点：测点用途',
               textAlign: TextAlign.right,
               style: TextStyle(
                 color: AppTheme.textPrimary,

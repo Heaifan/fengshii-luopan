@@ -1,4 +1,5 @@
 import 'mountain_24.dart';
+import 'mountain_24_info.dart';
 import 'compass_math.dart';
 
 class DirectionSector {
@@ -67,6 +68,11 @@ class DirectionSector {
 
   static String mountainLabelFromHeading(double heading) {
     return '${mountainFromHeading(heading)}山';
+  }
+
+  static Mountain24Info mountainInfoFromHeading(double heading) {
+    final mountain = mountainFromHeading(heading);
+    return Mountain24InfoTable.fromMountain(mountain);
   }
 
   static Map<String, String> eightGridLabels() {

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../fengshui/direction_sector.dart';
 import '../../../fengshui/mountain_24.dart';
+import '../../../fengshui/mountain_24_info.dart';
 import '../../../fengshui/bazhai_you_nian_table.dart';
 import '../../../fengshui/measure_type_meaning.dart';
+import '../../../fengshui/palace_element_theme.dart';
 
 class TiandirenPlatePainter extends CustomPainter {
   final List<CompassRecord> records;
@@ -51,11 +53,16 @@ class TiandirenPlatePainter extends CustomPainter {
     'northWest': '西北',
   };
 
+  static const _selectedGold = Color(0xFFB8862D);
+  static const _auspiciousColor = Color(0xFF2F6B3A);
+  static const _inauspiciousColor = Color(0xFF8A2E21);
+  static const _textPrimary = Color(0xFF20160D);
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final R = math.min(size.width, size.height) / 2;
-    final s = R / 150; // scale factor
+    final s = R / 150;
 
     _drawBackground(canvas, center, R);
     _drawMountainRing(canvas, center, R, s);
@@ -127,21 +134,21 @@ class TiandirenPlatePainter extends CustomPainter {
           ..strokeWidth = 0.5,
       );
 
-      // mountain text
+      // mountain text: "子天水" format
+      final info = Mountain24InfoTable.fromMountain(mountain);
       final textPos = center +
           Offset(math.cos(centerRad) * R * _mountainTextR,
               math.sin(centerRad) * R * _mountainTextR);
 
       final isSelected = mountain == selMountain;
+      // draw mountain name as before
       _drawText(
         canvas,
-        mountain,
+        info.fullLabel,
         textPos,
-        13 * s,
+        isSelected ? 11.0 * s : 10.0 * s,
         isSelected ? FontWeight.w800 : FontWeight.w500,
-        isSelected
-            ? const Color(0xFFC43C32)
-            : const Color(0xFF4F351F),
+        isSelected ? _selectedGold : const Color(0xFF4F351F),
       );
     }
   }
@@ -172,18 +179,28 @@ class TiandirenPlatePainter extends CustomPainter {
         final isSelected =
             selSector != null && sector == selSector;
 
-        // cell background
+        // cell background by element
+        final element = PalaceElementTheme.elementForSector(sector);
+        final fillColor = PalaceElementTheme.colorForElement(element);
         canvas.drawRect(
           cellRect,
-          Paint()
-            ..color = isSelected
-                ? const Color(0x50FFC107)
-                : const Color(0x08000000),
+          Paint()..color = fillColor,
         );
 
+        // gold border for selected cell
+        if (isSelected) {
+          canvas.drawRect(
+            cellRect,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.5
+              ..color = _selectedGold,
+          );
+        }
+
         if (sector == 'center') {
-          _drawCenteredText(canvas, '中宮', cellRect.center,
-              15 * s, FontWeight.w800, const Color(0xFF4F351F));
+          _drawCenteredText(canvas, '中宫', cellRect.center,
+              15 * s, FontWeight.w800, _textPrimary);
         } else {
           final label = _sectorLabel[sector]!;
           final gua = _sectorToGua[sector]!;
@@ -191,6 +208,10 @@ class TiandirenPlatePainter extends CustomPainter {
               houseGua: houseGua, palaceGua: gua);
           final meta = bazhaiStarMetaMap[star];
           final isGood = meta?.isGood ?? false;
+          final rank =
+              getBazhaiStarRank(houseGua: houseGua, starName: star);
+          final starFull =
+              '$star${meta?.element ?? ''}（$rank）';
 
           // direction name
           _drawCenteredText(
@@ -200,7 +221,7 @@ class TiandirenPlatePainter extends CustomPainter {
                 cellRect.center.dy - cellSize * 0.18),
             14 * s,
             FontWeight.w800,
-            const Color(0xFF1C1208),
+            _textPrimary,
           );
 
           // gua name smaller
@@ -214,18 +235,16 @@ class TiandirenPlatePainter extends CustomPainter {
             const Color(0xFF5F4630),
           );
 
-          // bazhai star
+          // bazhai star full label
           if (star.isNotEmpty) {
             _drawCenteredText(
               canvas,
-              star,
+              starFull,
               Offset(cellRect.center.dx,
                   cellRect.center.dy + cellSize * 0.18),
-              12 * s,
+              10 * s,
               FontWeight.w700,
-              isGood
-                  ? const Color(0xFF2E7D32)
-                  : const Color(0xFFC43C32),
+              isGood ? _auspiciousColor : _inauspiciousColor,
             );
           }
         }
@@ -273,19 +292,19 @@ class TiandirenPlatePainter extends CustomPainter {
       final label = MeasureTypeMeaning.shortLabel(record.measureType);
 
       if (isSelected) {
-        // selection glow ring
+        // selection glow ring (gold)
         canvas.drawCircle(
           pos,
           14 * s,
           Paint()
-            ..color = const Color(0xFFFFC107).withValues(alpha: 0.5)
+            ..color = _selectedGold.withValues(alpha: 0.5)
             ..style = PaintingStyle.fill,
         );
         canvas.drawCircle(
           pos,
           14 * s,
           Paint()
-            ..color = const Color(0xFFFFC107)
+            ..color = _selectedGold
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2,
         );

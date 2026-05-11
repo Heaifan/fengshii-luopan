@@ -3,6 +3,7 @@ import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../fengshui/direction_sector.dart';
 import '../../../fengshui/measure_type_meaning.dart';
+import '../../../fengshui/mountain_24_info.dart';
 import '../../../data/models/measure_type.dart';
 
 class TiandirenDetailCard extends StatelessWidget {
@@ -19,15 +20,16 @@ class TiandirenDetailCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final sectorKey =
         DirectionSector.sector8FromHeading(record.heading);
-    final sector = DirectionSector.sector8Label(sectorKey);
-    final mountain =
-        DirectionSector.mountainLabelFromHeading(record.heading);
+    final sectorLabel = DirectionSector.sector8Label(sectorKey);
+    final mountainChar =
+        DirectionSector.mountainFromHeading(record.heading);
+    final mountainInfo = Mountain24InfoTable.fromMountain(mountainChar);
+    final gua = DirectionSector.sectorToGua(sectorKey);
     final typeLabel = MeasureTypes.label(record.measureType);
     final name = record.measureName?.trim().isNotEmpty == true
         ? record.measureName!.trim()
         : typeLabel;
-
-    final isAuspicious = !record.bazhaiText.contains('凶');
+    final usage = MeasureTypeMeaning.humanMeaning(record.measureType);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -63,7 +65,7 @@ class TiandirenDetailCard extends StatelessWidget {
 
           // palace · mountain
           Text(
-            '归位：$sector · $mountain',
+            '归位：$sectorLabel · ${mountainInfo.mountainLabel}',
             style: const TextStyle(
               color: AppTheme.textLabel,
               fontSize: 15,
@@ -73,27 +75,24 @@ class TiandirenDetailCard extends StatelessWidget {
 
           const Divider(height: 20),
 
-          // Tian
-          _buildLine(
-            '天',
-            '$houseGua${sector}为${record.bazhaiText}',
-            isAuspicious,
+          // mountain position
+          _buildInfoLine(
+            '山位',
+            '${mountainInfo.mountainLabel}｜${mountainInfo.yuanLongLabel}｜${mountainInfo.element}',
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
-          // Di
-          _buildLine(
-            '地',
-            '$name落于$sector$mountain',
-            null,
+          // palace position
+          _buildInfoLine(
+            '宫位',
+            '$sectorLabel｜$gua卦｜${record.bazhaiText}',
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
-          // Ren
-          _buildLine(
-            '人',
-            MeasureTypeMeaning.humanMeaning(record.measureType),
-            null,
+          // usage
+          _buildInfoLine(
+            '用途',
+            '$typeLabel｜$usage',
           ),
 
           const SizedBox(height: 10),
@@ -110,12 +109,12 @@ class TiandirenDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLine(String prefix, String content, bool? isGood) {
+  Widget _buildInfoLine(String prefix, String content) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 24,
+          width: 40,
           height: 24,
           decoration: BoxDecoration(
             color: const Color(0xFF5A4724),
@@ -135,12 +134,10 @@ class TiandirenDetailCard extends StatelessWidget {
         Expanded(
           child: Text(
             content,
-            style: TextStyle(
-              color:
-                  isGood != null ? (isGood ? const Color(0xFF2E7D32) : const Color(0xFFC43C32)) : AppTheme.textPrimary,
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
               fontSize: 14,
-              fontWeight:
-                  isGood != null ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: FontWeight.w500,
               height: 1.4,
             ),
           ),

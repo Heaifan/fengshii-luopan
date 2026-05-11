@@ -1,0 +1,392 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import '../../../data/models/compass_record.dart';
+import '../../../fengshui/direction_sector.dart';
+import '../../../fengshui/mountain_24.dart';
+import '../../../fengshui/bazhai_you_nian_table.dart';
+import '../../../fengshui/measure_type_meaning.dart';
+
+class TiandirenPlatePainter extends CustomPainter {
+  final List<CompassRecord> records;
+  final String houseGua;
+  final CompassRecord? selectedRecord;
+
+  TiandirenPlatePainter({
+    required this.records,
+    required this.houseGua,
+    this.selectedRecord,
+  });
+
+  // ---- layout constants (fractions of radius R) ----
+  static const _ringOuter = 0.97;
+  static const _ringInner = 0.82;
+  static const _mountainTextR = 0.92;
+  static const _gridHalfSide = 0.62;
+
+  static const _gridLayout = [
+    ['southEast', 'south', 'southWest'],
+    ['east', 'center', 'west'],
+    ['northEast', 'north', 'northWest'],
+  ];
+
+  static const _sectorToGua = {
+    'north': '坎',
+    'northEast': '艮',
+    'east': '震',
+    'southEast': '巽',
+    'south': '离',
+    'southWest': '坤',
+    'west': '兑',
+    'northWest': '乾',
+  };
+
+  static const _sectorLabel = {
+    'north': '北',
+    'northEast': '东北',
+    'east': '东',
+    'southEast': '东南',
+    'south': '南',
+    'southWest': '西南',
+    'west': '西',
+    'northWest': '西北',
+  };
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final R = math.min(size.width, size.height) / 2;
+    final s = R / 150; // scale factor
+
+    _drawBackground(canvas, center, R);
+    _drawMountainRing(canvas, center, R, s);
+    _drawPalaceGrid(canvas, center, R, s);
+    _drawPointAnchors(canvas, center, R, s);
+  }
+
+  @override
+  bool shouldRepaint(TiandirenPlatePainter oldDelegate) => true;
+
+  // ============================================================
+  // Background
+  // ============================================================
+
+  void _drawBackground(Canvas canvas, Offset center, double R) {
+    canvas.drawCircle(
+      center,
+      R,
+      Paint()..color = const Color(0xFFF8EED8),
+    );
+    canvas.drawCircle(
+      center,
+      R,
+      Paint()
+        ..color = const Color(0xFF9A7A3D).withValues(alpha: 0.3)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  // ============================================================
+  // Mountain ring (24 shan) - outer ring
+  // ============================================================
+
+  void _drawMountainRing(Canvas canvas, Offset center, double R, double s) {
+    final outerR = R * _ringOuter;
+    final innerR = R * _ringInner;
+
+    // ring fill
+    final ringPath = Path()
+      ..addOval(Rect.fromCircle(center: center, radius: outerR))
+      ..addOval(Rect.fromCircle(center: center, radius: innerR))
+      ..fillType = PathFillType.evenOdd;
+    canvas.drawPath(
+        ringPath, Paint()..color = const Color(0xFFF0E8D5));
+
+    // selected mountain
+    String? selMountain;
+    if (selectedRecord != null) {
+      selMountain =
+          DirectionSector.mountainFromHeading(selectedRecord!.heading);
+    }
+
+    for (int i = 0; i < 24; i++) {
+      final mountain = Mountain24Calculator.mountains[i];
+      final centerDeg = i * 15.0;
+      final centerRad = (centerDeg - 90) * math.pi / 180;
+
+      // sector divider line at sector start
+      final startDeg = centerDeg - 7.5;
+      final startRad = (startDeg - 90) * math.pi / 180;
+      canvas.drawLine(
+        center + Offset(math.cos(startRad) * innerR,
+            math.sin(startRad) * innerR),
+        center + Offset(math.cos(startRad) * outerR,
+            math.sin(startRad) * outerR),
+        Paint()
+          ..color = const Color(0xFF9A7A3D).withValues(alpha: 0.2)
+          ..strokeWidth = 0.5,
+      );
+
+      // mountain text
+      final textPos = center +
+          Offset(math.cos(centerRad) * R * _mountainTextR,
+              math.sin(centerRad) * R * _mountainTextR);
+
+      final isSelected = mountain == selMountain;
+      _drawText(
+        canvas,
+        mountain,
+        textPos,
+        13 * s,
+        isSelected ? FontWeight.w800 : FontWeight.w500,
+        isSelected
+            ? const Color(0xFFC43C32)
+            : const Color(0xFF4F351F),
+      );
+    }
+  }
+
+  // ============================================================
+  // 3×3 palace grid
+  // ============================================================
+
+  void _drawPalaceGrid(Canvas canvas, Offset center, double R, double s) {
+    final halfSide = R * _gridHalfSide;
+    final cellSize = 2 * halfSide / 3;
+
+    // which sector is selected
+    String? selSector;
+    if (selectedRecord != null) {
+      selSector = DirectionSector.sector8FromHeading(
+          selectedRecord!.heading);
+    }
+
+    for (int row = 0; row < 3; row++) {
+      for (int col = 0; col < 3; col++) {
+        final sector = _gridLayout[row][col];
+        final left = center.dx - halfSide + col * cellSize;
+        final top = center.dy - halfSide + row * cellSize;
+        final cellRect =
+            Rect.fromLTWH(left, top, cellSize, cellSize);
+
+        final isSelected =
+            selSector != null && sector == selSector;
+
+        // cell background
+        canvas.drawRect(
+          cellRect,
+          Paint()
+            ..color = isSelected
+                ? const Color(0x50FFC107)
+                : const Color(0x08000000),
+        );
+
+        if (sector == 'center') {
+          _drawCenteredText(canvas, '中宮', cellRect.center,
+              15 * s, FontWeight.w800, const Color(0xFF4F351F));
+        } else {
+          final label = _sectorLabel[sector]!;
+          final gua = _sectorToGua[sector]!;
+          final star = getBazhaiStar(
+              houseGua: houseGua, palaceGua: gua);
+          final meta = bazhaiStarMetaMap[star];
+          final isGood = meta?.isGood ?? false;
+
+          // direction name
+          _drawCenteredText(
+            canvas,
+            label,
+            Offset(cellRect.center.dx,
+                cellRect.center.dy - cellSize * 0.18),
+            14 * s,
+            FontWeight.w800,
+            const Color(0xFF1C1208),
+          );
+
+          // gua name smaller
+          _drawCenteredText(
+            canvas,
+            gua,
+            Offset(cellRect.center.dx,
+                cellRect.center.dy - cellSize * 0.02),
+            11 * s,
+            FontWeight.w500,
+            const Color(0xFF5F4630),
+          );
+
+          // bazhai star
+          if (star.isNotEmpty) {
+            _drawCenteredText(
+              canvas,
+              star,
+              Offset(cellRect.center.dx,
+                  cellRect.center.dy + cellSize * 0.18),
+              12 * s,
+              FontWeight.w700,
+              isGood
+                  ? const Color(0xFF2E7D32)
+                  : const Color(0xFFC43C32),
+            );
+          }
+        }
+      }
+    }
+
+    // grid lines
+    final linePaint = Paint()
+      ..color = const Color(0xFF9A7A3D).withValues(alpha: 0.35)
+      ..strokeWidth = 1.0;
+
+    for (int col = 1; col < 3; col++) {
+      final x = center.dx - halfSide + col * cellSize;
+      canvas.drawLine(
+        Offset(x, center.dy - halfSide),
+        Offset(x, center.dy + halfSide),
+        linePaint,
+      );
+    }
+    for (int row = 1; row < 3; row++) {
+      final y = center.dy - halfSide + row * cellSize;
+      canvas.drawLine(
+        Offset(center.dx - halfSide, y),
+        Offset(center.dx + halfSide, y),
+        linePaint,
+      );
+    }
+    // outer border
+    canvas.drawRect(
+      Rect.fromLTWH(
+          center.dx - halfSide, center.dy - halfSide, halfSide * 2, halfSide * 2),
+      linePaint,
+    );
+  }
+
+  // ============================================================
+  // Point anchors
+  // ============================================================
+
+  void _drawPointAnchors(
+      Canvas canvas, Offset center, double R, double s) {
+    for (final record in records) {
+      final isSelected = selectedRecord?.id == record.id;
+      final pos = _pointPosition(record, center, R);
+      final label = MeasureTypeMeaning.shortLabel(record.measureType);
+
+      if (isSelected) {
+        // selection glow ring
+        canvas.drawCircle(
+          pos,
+          14 * s,
+          Paint()
+            ..color = const Color(0xFFFFC107).withValues(alpha: 0.5)
+            ..style = PaintingStyle.fill,
+        );
+        canvas.drawCircle(
+          pos,
+          14 * s,
+          Paint()
+            ..color = const Color(0xFFFFC107)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2,
+        );
+      }
+
+      // dot
+      canvas.drawCircle(
+        pos,
+        isSelected ? 10 * s : 8 * s,
+        Paint()..color = const Color(0xFF5A4724),
+      );
+
+      // short label
+      _drawCenteredText(
+        canvas,
+        label,
+        pos,
+        10 * s,
+        FontWeight.bold,
+        Colors.white,
+      );
+    }
+  }
+
+  // ============================================================
+  // Helpers
+  // ============================================================
+
+  double _radiusFactor(String type) {
+    switch (type) {
+      case 'door':
+        return 0.48;
+      case 'balcony':
+        return 0.44;
+      case 'window':
+        return 0.40;
+      case 'stove':
+        return 0.36;
+      case 'bed':
+        return 0.30;
+      case 'desk':
+        return 0.26;
+      case 'altar':
+        return 0.32;
+      default:
+        return 0.36;
+    }
+  }
+
+  Offset _pointPosition(
+      CompassRecord record, Offset center, double R) {
+    final rad = (record.heading - 90) * math.pi / 180;
+    final r = R * _radiusFactor(record.measureType);
+    return Offset(
+      center.dx + math.cos(rad) * r,
+      center.dy + math.sin(rad) * r,
+    );
+  }
+
+  void _drawText(Canvas canvas, String text, Offset pos, double size,
+      FontWeight weight, Color color) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+            color: color,
+            fontSize: size,
+            fontWeight: weight,
+            fontFamily: 'serif'),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(
+        canvas, pos - Offset(tp.width / 2, tp.height / 2));
+  }
+
+  void _drawCenteredText(
+      Canvas canvas, String text, Offset center, double size,
+      FontWeight weight, Color color) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+            color: color,
+            fontSize: size,
+            fontWeight: weight,
+            fontFamily: 'serif'),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(
+        canvas, center - Offset(tp.width / 2, tp.height / 2));
+  }
+
+  /// Returns the screen positions of anchors for hit-testing.
+  List<MapEntry<CompassRecord, Offset>> anchorPositions(
+      Size size, List<CompassRecord> records) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final R = math.min(size.width, size.height) / 2;
+    return records
+        .map((r) => MapEntry(r, _pointPosition(r, center, R)))
+        .toList();
+  }
+}

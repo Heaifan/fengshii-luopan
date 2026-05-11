@@ -8,6 +8,8 @@ import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
 import '../compass/compass_page.dart';
 import '../records/compass_record_detail_page.dart';
+import '../../fengshui/direction_sector.dart';
+import 'simple_project_plate_page.dart';
 
 class MeasurementProjectDetailPage extends StatefulWidget {
   final MeasurementProject project;
@@ -110,6 +112,29 @@ class _MeasurementProjectDetailPageState
                     icon: const Icon(Icons.add_location_alt,
                         size: 18),
                     label: const Text('继续测量'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF5A4724),
+                      side: const BorderSide(
+                          color: Color(0xFF5A4724)),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SimpleProjectPlatePage(
+                              project: widget.project),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.grid_view, size: 18),
+                    label: const Text('简易正盘'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF5A4724),
                       side: const BorderSide(
@@ -237,6 +262,13 @@ class _MeasurementProjectDetailPageState
                     style: const TextStyle(
                         fontSize: 13,
                         color: AppTheme.textTitle),
+                  ),
+                  Text(
+                    '归位：${DirectionSector.sector8Label(DirectionSector.sector8FromHeading(point.heading))} · ${DirectionSector.mountainLabelFromHeading(point.heading)}',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary),
                   ),
                   Text(point.bazhaiText,
                       style: TextStyle(

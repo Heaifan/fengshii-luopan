@@ -314,7 +314,7 @@ class _CompassPageState extends State<CompassPage> {
       builder: (ctx) {
         return SafeArea(
           child: FractionallySizedBox(
-            heightFactor: 0.78,
+            heightFactor: 0.72,
             child: Container(
               decoration: const BoxDecoration(
                 color: Color(0xFFF7EEDB),
@@ -355,7 +355,7 @@ class _CompassPageState extends State<CompassPage> {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF2A2118))),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           TextFormField(
                             controller: nameCtrl,
                             autofocus: true,
@@ -370,21 +370,21 @@ class _CompassPageState extends State<CompassPage> {
                                   borderSide: BorderSide(
                                       color: Color(0xFFB99A61))),
                               contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                                  horizontal: 12, vertical: 8),
                             ),
                             validator: (v) =>
                                 (v == null || v.trim().isEmpty)
                                     ? '请输入记录名称'
                                     : null,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           // ---- Location ----
                           const Text('地点（可选）',
                               style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF2A2118))),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           TextField(
                             controller: locationCtrl,
                             decoration: const InputDecoration(
@@ -398,17 +398,17 @@ class _CompassPageState extends State<CompassPage> {
                                   borderSide: BorderSide(
                                       color: Color(0xFFB99A61))),
                               contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                                  horizontal: 12, vertical: 8),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           // ---- Note ----
                           const Text('备注（可选）',
                               style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF2A2118))),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           TextField(
                             controller: noteCtrl,
                             maxLines: 2,
@@ -424,13 +424,13 @@ class _CompassPageState extends State<CompassPage> {
                                   borderSide: BorderSide(
                                       color: Color(0xFFB99A61))),
                               contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                                  horizontal: 12, vertical: 8),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           // ---- Measurement summary ----
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFFF8ED),
                               borderRadius:
@@ -450,7 +450,7 @@ class _CompassPageState extends State<CompassPage> {
                                             FontWeight.bold,
                                         color:
                                             Color(0xFF5A4724))),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 4),
                                 _summaryRow(
                                     '方向',
                                     '${compassDirectionName(reading.facingDegree)}${reading.facingDegree.toStringAsFixed(0)}°'),
@@ -471,7 +471,7 @@ class _CompassPageState extends State<CompassPage> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           // ---- Buttons ----
                           Row(
                             children: [
@@ -679,8 +679,8 @@ class _CompassPageState extends State<CompassPage> {
                     ),
                   ),
                   Positioned(
-                    left: 8,
-                    bottom: 8,
+                    left: 5,
+                    bottom: 5,
                     child: _buildLevelIndicator(),
                   ),
                 ],

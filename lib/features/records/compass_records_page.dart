@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/theme.dart';
 import '../../data/models/compass_record.dart';
 import '../../data/storage/settings_storage.dart';
+import '../compass/luopan_dial.dart';
 import 'compass_record_detail_page.dart';
 
 class CompassRecordsPage extends StatefulWidget {
@@ -58,25 +60,26 @@ class _CompassRecordsPageState extends State<CompassRecordsPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.history, size: 56, color: Color(0xFFB99A61)),
+            const Icon(Icons.history, size: 56, color: AppTheme.textHint),
             const SizedBox(height: 16),
             const Text('暂无罗盘记录',
                 style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2A2118))),
+                    color: AppTheme.textPrimary)),
             const SizedBox(height: 8),
             const Text(
               '锁定罗盘后点击"保存罗盘"，\n即可保存看房、店铺、办公室等测量结果。',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Color(0xFF9A8A6A)),
+              style:
+                  TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 20),
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF5A4724),
-                side: const BorderSide(color: Color(0xFFB99A61)),
+                side: const BorderSide(color: AppTheme.cardBorder),
               ),
               child: const Text('返回测量'),
             ),
@@ -116,59 +119,77 @@ class _CompassRecordsPageState extends State<CompassRecordsPage> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: const Color(0xFFF7F0DF),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0x33A58A4A)),
+          border:
+              Border.all(color: const Color(0xFF9A7A3D).withValues(alpha: 0.25)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            // Row 1: name
-            Text(record.name,
-                style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2A2118))),
-            const SizedBox(height: 6),
-            // Row 2: direction + sitting-facing
-            Row(
-              children: [
-                Text(record.directionText,
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF5A4724))),
-                const SizedBox(width: 8),
-                Text('· ${record.sittingFacingText}',
-                    style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF7A6040))),
-              ],
+            // Thumbnail compass
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                color: AppTheme.cardBg,
+                width: 58,
+                height: 58,
+                child: LuopanDial(
+                  heading: record.heading,
+                  houseGua: record.houseGua,
+                ),
+              ),
             ),
-            const SizedBox(height: 4),
-            // Row 3: palace / bazhai
-            Text('${record.palace} · ${record.bazhaiText}',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isAuspicious
-                        ? const Color(0xFF2E7D32)
-                        : const Color(0xFFC43C32))),
-            const SizedBox(height: 4),
-            // Row 4: time
-            Text(timeStr,
-                style: const TextStyle(
-                    fontSize: 12, color: Color(0xFF9A8A6A))),
-            if (record.note != null && record.note!.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(record.note!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 12, color: Color(0xFF9A8A6A))),
-            ],
+            const SizedBox(width: 12),
+            // Text info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(record.name,
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(record.directionText,
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textTitle)),
+                      const SizedBox(width: 6),
+                      Text('· ${record.sittingFacingText}',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text('${record.palace} · ${record.bazhaiText}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isAuspicious
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFC43C32))),
+                  const SizedBox(height: 2),
+                  Text(timeStr,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.textSecondary)),
+                  if (record.note != null && record.note!.isNotEmpty)
+                    Text(record.note!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary)),
+                ],
+              ),
+            ),
           ],
         ),
       ),

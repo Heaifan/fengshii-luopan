@@ -13,6 +13,7 @@ import 'luopan_dial.dart';
 import 'tilt_service.dart';
 import 'bubble_indicator.dart';
 import 'l_type_level_indicator.dart';
+import '../../app/theme.dart';
 import '../../fengshui/bazhai_you_nian_table.dart';
 import '../records/compass_records_page.dart';
 
@@ -353,9 +354,9 @@ class _CompassPageState extends State<CompassPage> {
                           // ---- Name ----
                           const Text('记录名称 *',
                               style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2A2118))),
+                                  color: AppTheme.textLabel)),
                           const SizedBox(height: 2),
                           TextFormField(
                             controller: nameCtrl,
@@ -363,8 +364,8 @@ class _CompassPageState extends State<CompassPage> {
                             decoration: const InputDecoration(
                               hintText: '例如：A小区 3栋 1201',
                               hintStyle: TextStyle(
-                                  color: Color(0xFFB99A61),
-                                  fontSize: 13),
+                                  color: AppTheme.textHint,
+                                  fontSize: 15),
                               filled: true,
                               fillColor: Color(0xFFFFF8ED),
                               border: OutlineInputBorder(
@@ -382,17 +383,17 @@ class _CompassPageState extends State<CompassPage> {
                           // ---- Location ----
                           const Text('地点（可选）',
                               style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2A2118))),
+                                  color: AppTheme.textLabel)),
                           const SizedBox(height: 2),
                           TextField(
                             controller: locationCtrl,
                             decoration: const InputDecoration(
                               hintText: '例如：XX小区、办公室、店铺',
                               hintStyle: TextStyle(
-                                  color: Color(0xFFB99A61),
-                                  fontSize: 13),
+                                  color: AppTheme.textHint,
+                                  fontSize: 15),
                               filled: true,
                               fillColor: Color(0xFFFFF8ED),
                               border: OutlineInputBorder(
@@ -406,9 +407,9 @@ class _CompassPageState extends State<CompassPage> {
                           // ---- Note ----
                           const Text('备注（可选）',
                               style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2A2118))),
+                                  color: AppTheme.textLabel)),
                           const SizedBox(height: 2),
                           TextField(
                             controller: noteCtrl,
@@ -417,8 +418,8 @@ class _CompassPageState extends State<CompassPage> {
                               hintText:
                                   '例如：站在客厅中心，手机朝向阳台测量',
                               hintStyle: TextStyle(
-                                  color: Color(0xFFB99A61),
-                                  fontSize: 13),
+                                  color: AppTheme.textHint,
+                                  fontSize: 15),
                               filled: true,
                               fillColor: Color(0xFFFFF8ED),
                               border: OutlineInputBorder(
@@ -446,11 +447,11 @@ class _CompassPageState extends State<CompassPage> {
                               children: [
                                 const Text('测量信息',
                                     style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight:
                                             FontWeight.bold,
                                         color:
-                                            Color(0xFF5A4724))),
+                                            AppTheme.textTitle)),
                                 const SizedBox(height: 4),
                                 _summaryRow(
                                     '方向',
@@ -622,14 +623,14 @@ class _CompassPageState extends State<CompassPage> {
             width: 72,
             child: Text(label,
                 style: const TextStyle(
-                    fontSize: 11, color: Color(0xFF9A8A6A))),
+                    fontSize: 12, color: AppTheme.textLabel)),
           ),
           Expanded(
             child: Text(value,
                 style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2A2118))),
+                    color: AppTheme.textPrimary)),
           ),
         ],
       ),

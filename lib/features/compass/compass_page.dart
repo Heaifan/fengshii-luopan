@@ -679,8 +679,8 @@ class _CompassPageState extends State<CompassPage> {
                     ),
                   ),
                   Positioned(
-                    left: 4,
-                    bottom: 4,
+                    left: 8,
+                    bottom: 8,
                     child: _buildLevelIndicator(),
                   ),
                 ],
@@ -734,9 +734,12 @@ class _CompassPageState extends State<CompassPage> {
     final bazhaiText =
         '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
 
-    final statusText =
-        _isLocked ? '已锁定｜${status.text}' : status.text;
-    final statusColor = status.color;
+    final statusText = _isLocked
+        ? '已锁定｜${_lockedStatusText ?? status.text}'
+        : status.text;
+    final statusColor = _isLocked
+        ? (_lockedStatusColor ?? status.color)
+        : status.color;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),

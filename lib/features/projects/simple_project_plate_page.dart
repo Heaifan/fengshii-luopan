@@ -142,18 +142,6 @@ class _SimpleProjectPlatePageState
             record: _selectedRecord!,
             houseGua: houseGua,
           ),
-
-        const SizedBox(height: 16),
-
-        // note
-        const Text(
-          '注：测点为方位示意，不代表实际距离比例。',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 12,
-          ),
-        ),
       ],
     );
   }

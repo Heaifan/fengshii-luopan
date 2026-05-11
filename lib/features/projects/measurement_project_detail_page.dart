@@ -264,7 +264,7 @@ class _MeasurementProjectDetailPageState
                         color: AppTheme.textTitle),
                   ),
                   Text(
-                    '归位：${DirectionSector.sector8Label(DirectionSector.sector8FromHeading(point.heading))} · ${DirectionSector.mountainLabelFromHeading(point.heading)}',
+                    '归位：${DirectionSector.sectorGuaPalaceLabel(DirectionSector.sector8FromHeading(point.heading))} · ${DirectionSector.mountainLabelFromHeading(point.heading)}',
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

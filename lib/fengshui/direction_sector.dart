@@ -61,6 +61,13 @@ class DirectionSector {
     }
   }
 
+  /// Returns the trigram palace label, e.g. "坎宫", "离宫".
+  static String sectorGuaPalaceLabel(String sector) {
+    final gua = sectorToGua(sector);
+    if (gua.isEmpty) return '未知';
+    return '$gua宫';
+  }
+
   /// Get the 24-shan mountain character for a heading (delegates to Mountain24Calculator).
   static String mountainFromHeading(double heading) {
     return Mountain24Calculator.fromDegree(heading).mountain;

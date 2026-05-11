@@ -289,7 +289,10 @@ class TiandirenPlatePainter extends CustomPainter {
     for (final record in records) {
       final isSelected = selectedRecord?.id == record.id;
       final pos = _pointPosition(record, center, R);
-      final label = MeasureTypeMeaning.shortLabel(record.measureType);
+      final label = MeasureTypeMeaning.pointShortLabel(
+        type: record.measureType,
+        measureName: record.measureName,
+      );
 
       if (isSelected) {
         // selection glow ring (gold)

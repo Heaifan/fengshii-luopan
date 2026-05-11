@@ -44,4 +44,19 @@ class MeasureTypeMeaning {
         return '点';
     }
   }
+
+  /// For plate anchor labels: uses measureName first char for 'other' type.
+  static String pointShortLabel({
+    required String type,
+    String? measureName,
+  }) {
+    if (type == 'other') {
+      final name = measureName?.trim();
+      if (name != null && name.isNotEmpty) {
+        return name.substring(0, 1);
+      }
+      return '点';
+    }
+    return shortLabel(type);
+  }
 }

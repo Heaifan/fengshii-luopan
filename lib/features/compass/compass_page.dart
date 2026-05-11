@@ -967,7 +967,9 @@ class _CompassPageState extends State<CompassPage> {
                   flex: 2,
                   child: FilledButton.icon(
                     onPressed: () =>
-                        _showSaveSheet(reading, status.text),
+                        _showSaveSheet(
+                            _lockedReading ?? reading,
+                            _lockedStatusText ?? status.text),
                     icon: const Icon(Icons.save_alt, size: 16),
                     label: const Text('保存罗盘',
                         style: TextStyle(fontSize: 13)),

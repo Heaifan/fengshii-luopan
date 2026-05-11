@@ -25,6 +25,7 @@ class _CompassRecordsPageState extends State<CompassRecordsPage> {
 
   Future<void> _loadRecords() async {
     final records = await _storage.loadRecords();
+    records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     if (!mounted) return;
     setState(() {
       _records = records;

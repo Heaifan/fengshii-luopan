@@ -9,7 +9,7 @@ class PlateSummaryCard extends StatelessWidget {
   final List<CompassRecord> records;
   final String houseGua;
   final ValueChanged<CompassRecord> onRecordTap;
-  final VoidCallback? onRecordLongPress;
+  final ValueChanged<CompassRecord>? onRecordLongPress;
 
   const PlateSummaryCard({
     super.key,
@@ -81,7 +81,7 @@ class PlateSummaryCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => onRecordTap(info.record),
       onLongPress: onRecordLongPress != null
-          ? () => onRecordLongPress!.call()
+          ? () => onRecordLongPress!(info.record)
           : null,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),

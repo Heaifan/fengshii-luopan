@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../data/models/measure_type.dart';
@@ -180,6 +181,9 @@ class _MeasurePointFormSheetState
                   const SizedBox(height: 6),
                   TextField(
                     controller: _nameCtrl,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(20),
+                    ],
                     decoration: _inputDeco('例如：电冰箱'),
                     style: const TextStyle(
                         fontSize: 15,
@@ -196,6 +200,9 @@ class _MeasurePointFormSheetState
                   const SizedBox(height: 6),
                   TextField(
                     controller: _spaceCtrl,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(30),
+                    ],
                     decoration: _inputDeco('例如：客厅'),
                     style: const TextStyle(
                         fontSize: 15,
@@ -213,6 +220,9 @@ class _MeasurePointFormSheetState
                   TextField(
                     controller: _noteCtrl,
                     maxLines: 2,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(100),
+                    ],
                     decoration: _inputDeco('可选'),
                     style: const TextStyle(
                         fontSize: 15,
@@ -225,7 +235,42 @@ class _MeasurePointFormSheetState
                     children: [
                       if (widget.allowDelete)
                         TextButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            final confirmed =
+                                await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) {
+                                return AlertDialog(
+                                  title: const Text(
+                                      '删除测点？'),
+                                  content: const Text(
+                                      '删除后无法恢复。'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(
+                                              ctx, false),
+                                      child:
+                                          const Text('取消'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(
+                                              ctx, true),
+                                      style: TextButton
+                                          .styleFrom(
+                                        foregroundColor:
+                                            const Color(
+                                                0xFFA13A2A),
+                                      ),
+                                      child: const Text(
+                                          '删除'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            if (confirmed != true) return;
                             Navigator.pop(
                               context,
                               const MeasurePointFormResult(

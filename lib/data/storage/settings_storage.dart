@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/compass_record.dart';
 import '../models/measurement_project.dart';
@@ -36,10 +37,20 @@ class SettingsStorage {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_keyRecords);
     if (raw == null || raw.isEmpty) return [];
-    final list = jsonDecode(raw) as List<dynamic>;
-    return list
-        .map((e) => CompassRecord.fromJson(e as Map<String, dynamic>))
-        .toList();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(CompassRecord.fromJson)
+          .toList();
+    } catch (e, st) {
+      debugPrint('loadRecords failed: $e\n$st');
+      await prefs.setString(
+          '${_keyRecords}_corrupted_${DateTime.now().millisecondsSinceEpoch}',
+          raw);
+      return [];
+    }
   }
 
   Future<void> saveRecords(List<CompassRecord> records) async {
@@ -83,11 +94,20 @@ class SettingsStorage {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_keyProjects);
     if (raw == null || raw.isEmpty) return [];
-    final list = jsonDecode(raw) as List<dynamic>;
-    return list
-        .map((e) =>
-            MeasurementProject.fromJson(e as Map<String, dynamic>))
-        .toList();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(MeasurementProject.fromJson)
+          .toList();
+    } catch (e, st) {
+      debugPrint('loadProjects failed: $e\n$st');
+      await prefs.setString(
+          '${_keyProjects}_corrupted_${DateTime.now().millisecondsSinceEpoch}',
+          raw);
+      return [];
+    }
   }
 
   Future<void> saveProjects(

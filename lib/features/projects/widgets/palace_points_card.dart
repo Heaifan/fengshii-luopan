@@ -11,7 +11,7 @@ class PalacePointsCard extends StatelessWidget {
   final List<CompassRecord> records;
   final String houseGua;
   final ValueChanged<CompassRecord> onRecordTap;
-  final VoidCallback? onRecordLongPress;
+  final ValueChanged<CompassRecord>? onRecordLongPress;
 
   const PalacePointsCard({
     super.key,
@@ -99,7 +99,7 @@ class PalacePointsCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => onRecordTap(info.record),
       onLongPress: onRecordLongPress != null
-          ? () => onRecordLongPress!.call()
+          ? () => onRecordLongPress!(info.record)
           : null,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),

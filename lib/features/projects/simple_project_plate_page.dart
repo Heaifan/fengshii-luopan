@@ -75,42 +75,119 @@ class _SimpleProjectPlatePageState
   Future<void> _showExportOptions() async {
     await showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.cardBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              ListTile(
-                leading: const Icon(
-                    Icons.photo_library_outlined),
-                title: const Text('保存到相册'),
-                subtitle: const Text('导出正盘图片到手机相册'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _savePlateToGallery();
-                },
-              ),
-              const Divider(height: 1, indent: 56),
-              ListTile(
-                leading: const Icon(Icons.ios_share_rounded),
-                title: const Text('分享图片'),
-                subtitle: const Text('通过微信、邮件等方式分享'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _sharePlateImage();
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFF8E8),
+              borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC9A96A),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '导出正盘图片',
+                    style: TextStyle(
+                      color: Color(0xFF1C1208),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _buildExportTile(
+                  icon: Icons.photo_library_outlined,
+                  title: '保存到相册',
+                  subtitle: '导出正盘长图到手机相册',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _savePlateToGallery();
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildExportTile(
+                  icon: Icons.share,
+                  title: '分享图片',
+                  subtitle: '通过微信、邮件等方式分享',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _sharePlateImage();
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildExportTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBF0),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: const Color(0xFFE0C999),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xFF4A3A12), size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF1C1208),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFF6B5A45),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -125,6 +202,16 @@ class _SimpleProjectPlatePageState
     }
   }
 
+  String get _exportFileName {
+    final safe = widget.project.name
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+        .replaceAll(RegExp(r'\s+'), '_');
+    final maxLen = 40;
+    final truncated =
+        safe.length <= maxLen ? safe : safe.substring(0, maxLen);
+    return '风水荷盘_${truncated}_${DateTime.now().millisecondsSinceEpoch}';
+  }
+
   Future<void> _savePlateToGallery() async {
     setState(() => _exporting = true);
     try {
@@ -132,23 +219,16 @@ class _SimpleProjectPlatePageState
       if (bytes == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('导出失败，请重试')),
+            const SnackBar(content: Text('导出失败，请重试')),
           );
         }
         return;
       }
-      final name =
-          '风水荷盘_${widget.project.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}_${DateTime.now().millisecondsSinceEpoch}';
-      final success = await ProjectPlateExportService.saveToGallery(
-          bytes, fileName: name);
+      final result = await ProjectPlateExportService.saveToGallery(
+          bytes, fileName: _exportFileName);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success
-              ? '正盘图片已保存到相册'
-              : '保存失败，请检查相册权限'),
-        ),
+        SnackBar(content: Text(result.message)),
       );
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -162,16 +242,17 @@ class _SimpleProjectPlatePageState
       if (bytes == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('导出失败，请重试')),
+            const SnackBar(content: Text('导出失败，请重试')),
           );
         }
         return;
       }
-      final name =
-          '风水荷盘_${widget.project.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}_${DateTime.now().millisecondsSinceEpoch}';
-      await ProjectPlateExportService.shareImage(
-          bytes, fileName: name);
+      final result = await ProjectPlateExportService.shareImage(
+          bytes, fileName: _exportFileName);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -411,10 +492,7 @@ class _SimpleProjectPlatePageState
             records: _records,
             houseGua: houseGua,
             onRecordTap: _onPointTap,
-            onRecordLongPress: () =>
-                _selectedRecord != null
-                    ? _onPointLongPress(_selectedRecord!)
-                    : null,
+            onRecordLongPress: _onPointLongPress,
           ),
 
         if (_detailMode == PlateDetailMode.point &&
@@ -443,9 +521,7 @@ class _SimpleProjectPlatePageState
       records: palaceRecords,
       houseGua: houseGua,
       onRecordTap: _onPointTap,
-      onRecordLongPress: palaceRecords.length == 1
-          ? () => _onPointLongPress(palaceRecords.first)
-          : null,
+      onRecordLongPress: _onPointLongPress,
     );
   }
 

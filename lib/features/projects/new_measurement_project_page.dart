@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../app/theme.dart';
 import '../../data/models/measurement_project.dart';
@@ -99,6 +100,9 @@ class _NewMeasurementProjectPageState
               TextFormField(
                 controller: _nameCtrl,
                 autofocus: true,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(30),
+                ],
                 style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 16,
@@ -163,6 +167,9 @@ class _NewMeasurementProjectPageState
               const SizedBox(height: 4),
               TextField(
                 controller: _locationCtrl,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(50),
+                ],
                 style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 16,
@@ -194,6 +201,9 @@ class _NewMeasurementProjectPageState
               TextField(
                 controller: _noteCtrl,
                 maxLines: 2,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(100),
+                ],
                 style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 16,

@@ -361,11 +361,16 @@ class _CompassPageState extends State<CompassPage> {
                           TextFormField(
                             controller: nameCtrl,
                             autofocus: true,
+                            style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600),
                             decoration: const InputDecoration(
                               hintText: '例如：A小区 3栋 1201',
                               hintStyle: TextStyle(
                                   color: AppTheme.textHint,
-                                  fontSize: 15),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500),
                               filled: true,
                               fillColor: Color(0xFFFFF8ED),
                               border: OutlineInputBorder(
@@ -389,11 +394,16 @@ class _CompassPageState extends State<CompassPage> {
                           const SizedBox(height: 2),
                           TextField(
                             controller: locationCtrl,
+                            style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600),
                             decoration: const InputDecoration(
                               hintText: '例如：XX小区、办公室、店铺',
                               hintStyle: TextStyle(
                                   color: AppTheme.textHint,
-                                  fontSize: 15),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500),
                               filled: true,
                               fillColor: Color(0xFFFFF8ED),
                               border: OutlineInputBorder(
@@ -414,12 +424,17 @@ class _CompassPageState extends State<CompassPage> {
                           TextField(
                             controller: noteCtrl,
                             maxLines: 2,
+                            style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600),
                             decoration: const InputDecoration(
                               hintText:
                                   '例如：站在客厅中心，手机朝向阳台测量',
                               hintStyle: TextStyle(
                                   color: AppTheme.textHint,
-                                  fontSize: 15),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500),
                               filled: true,
                               fillColor: Color(0xFFFFF8ED),
                               border: OutlineInputBorder(

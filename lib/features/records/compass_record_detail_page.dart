@@ -29,56 +29,65 @@ class CompassRecordDetailPage extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Column(
           children: [
-            // ---- A: Core direction card ----
+            // ---- Static compass preview (main visual) ----
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final size =
+                    (constraints.maxWidth - 16).clamp(280.0, 330.0);
+                return Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F0DF),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: AppTheme.borderColor
+                              .withValues(alpha: 0.45)),
+                    ),
+                    child: SizedBox(
+                      width: size,
+                      height: size,
+                      child: LuopanDial(
+                        heading: record.heading,
+                        houseGua: record.houseGua,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // ---- Compact direction summary ----
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 18),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: AppTheme.cardBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.cardBorder),
               ),
-              child: Column(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(record.directionText,
                       style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
                           color: AppTheme.textPrimary)),
-                  const SizedBox(height: 4),
+                  const SizedBox(width: 14),
                   Text(record.sittingFacingText,
                       style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
                           color: AppTheme.textTitle)),
                 ],
               ),
             ),
             const SizedBox(height: 12),
 
-            // ---- B: Static compass preview ----
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF7F0DF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: AppTheme.borderColor.withValues(alpha: 0.45)),
-              ),
-              child: Center(
-                child: SizedBox(
-                  width: 250,
-                  height: 250,
-                  child: LuopanDial(
-                    heading: record.heading,
-                    houseGua: record.houseGua,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // ---- C: Compass info card ----
+            // ---- Compass info card ----
             _buildInfoCard('罗盘信息', [
               _row('宫位', record.palace),
               _row('向山', record.mountainText),
@@ -91,7 +100,7 @@ class CompassRecordDetailPage extends StatelessWidget {
             ]),
             const SizedBox(height: 12),
 
-            // ---- D: Record info card ----
+            // ---- Record info card ----
             _buildInfoCard('记录信息', [
               _row('名称', record.name),
               if (record.location != null && record.location!.isNotEmpty)

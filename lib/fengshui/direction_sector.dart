@@ -61,6 +61,30 @@ class DirectionSector {
     }
   }
 
+  /// Short label like "北", "东北", "东".
+  static String shortSector8Label(String sector) {
+    switch (sector) {
+      case 'north':
+        return '北';
+      case 'northEast':
+        return '东北';
+      case 'east':
+        return '东';
+      case 'southEast':
+        return '东南';
+      case 'south':
+        return '南';
+      case 'southWest':
+        return '西南';
+      case 'west':
+        return '西';
+      case 'northWest':
+        return '西北';
+      default:
+        return '未知';
+    }
+  }
+
   /// Returns the trigram palace label, e.g. "坎宫", "离宫".
   static String sectorGuaPalaceLabel(String sector) {
     final gua = sectorToGua(sector);

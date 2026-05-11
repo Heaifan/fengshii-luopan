@@ -51,6 +51,37 @@ class CompassRecord {
     this.spaceName,
   });
 
+  CompassRecord copyWith({
+    String? measureType,
+    String? measureName,
+    String? spaceName,
+    String? note,
+  }) {
+    return CompassRecord(
+      id: id,
+      name: name,
+      location: location,
+      note: note ?? this.note,
+      createdAt: createdAt,
+      heading: heading,
+      directionText: directionText,
+      sittingFacingText: sittingFacingText,
+      sittingMountain: sittingMountain,
+      facingMountain: facingMountain,
+      palace: palace,
+      mountainText: mountainText,
+      bazhaiText: bazhaiText,
+      statusText: statusText,
+      horizontalAngle: horizontalAngle,
+      verticalAngle: verticalAngle,
+      houseGua: houseGua,
+      projectId: projectId,
+      measureType: measureType ?? this.measureType,
+      measureName: measureName ?? this.measureName,
+      spaceName: spaceName ?? this.spaceName,
+    );
+  }
+
   factory CompassRecord.create({
     required String name,
     String? location,

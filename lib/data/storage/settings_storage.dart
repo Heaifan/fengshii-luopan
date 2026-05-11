@@ -60,6 +60,14 @@ class SettingsStorage {
     await saveRecords(records);
   }
 
+  Future<void> updateRecord(CompassRecord updated) async {
+    final records = await loadRecords();
+    final index = records.indexWhere((r) => r.id == updated.id);
+    if (index == -1) return;
+    records[index] = updated;
+    await saveRecords(records);
+  }
+
   Future<List<CompassRecord>> loadRecordsByProject(
       String projectId) async {
     final records = await loadRecords();

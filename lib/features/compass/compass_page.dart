@@ -173,7 +173,7 @@ class _CompassPageState extends State<CompassPage> {
     setState(() => _calibrationOffset = 0);
     _settings.saveCalibrationOffset(0);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已重置校准，恢复真实罗盘角度')),
+      const SnackBar(content: Text('已重置，恢复真实罗盘角度')),
     );
   }
 
@@ -740,7 +740,7 @@ class _CompassPageState extends State<CompassPage> {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0xFFF8EED8),
         borderRadius: BorderRadius.circular(10),
@@ -854,6 +854,7 @@ class _CompassPageState extends State<CompassPage> {
     return LTypeLevelIndicator(
       horizontalAngle: h,
       verticalAngle: v,
+      size: 78,
     );
   }
 
@@ -950,37 +951,52 @@ class _CompassPageState extends State<CompassPage> {
               ],
             ),
           ] else ...[
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () =>
-                        _lockCompass(reading, status.text, status.color),
-                    icon: const Icon(Icons.lock, size: 16),
-                    label: const Text('锁定罗盘',
-                        style: TextStyle(fontSize: 14)),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF5A4724),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24)),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () =>
+                    _lockCompass(reading, status.text, status.color),
+                icon: const Icon(Icons.lock, size: 16),
+                label: const Text('锁定罗盘',
+                    style: TextStyle(fontSize: 14)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF5A4724),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24)),
+                ),
+              ),
+            ),
+          ],
+          // Fixed-height tilt warning slot — never changes height
+          SizedBox(
+            height: 34,
+            child: AnimatedOpacity(
+              opacity: (!_isLocked && tiltAnyBad) ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD86A32),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    '当前姿态偏差大，建议调整后再锁定',
+                    style: TextStyle(
+                      color: Color(0xFFFFF4E8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-                if (tiltAnyBad)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Text('当前姿态偏差大，建议调整后再锁定',
-                        style: TextStyle(
-                            fontSize: 11, color: Color(0xFFC43C32))),
-                  ),
-              ],
+              ),
             ),
-          ],
-          const SizedBox(height: 6),
+          ),
+          const SizedBox(height: 4),
           // ---- Secondary buttons ----
           Wrap(
             spacing: 6,
@@ -1007,7 +1023,7 @@ class _CompassPageState extends State<CompassPage> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 4),
                 ),
-                child: const Text('重置校准',
+                child: const Text('重新检测',
                     style: TextStyle(fontSize: 12)),
               ),
               OutlinedButton(

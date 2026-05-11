@@ -1,29 +1,34 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class LTypeLevelIndicator extends StatelessWidget {
   final double horizontalAngle;
   final double verticalAngle;
   final bool hasData;
+  final double size;
 
   const LTypeLevelIndicator({
     super.key,
     required this.horizontalAngle,
     required this.verticalAngle,
     this.hasData = true,
+    this.size = 78,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 135,
-      height: 135,
-      child: CustomPaint(
-        size: const Size(135, 135),
-        painter: _LTypeLevelPainter(
-          horizontalAngle: horizontalAngle,
-          verticalAngle: verticalAngle,
-          hasData: hasData,
+    return Opacity(
+      opacity: 0.94,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(
+          size: Size(size, size),
+          painter: _LTypeLevelPainter(
+            horizontalAngle: horizontalAngle,
+            verticalAngle: verticalAngle,
+            hasData: hasData,
+            sz: size,
+          ),
         ),
       ),
     );
@@ -34,23 +39,21 @@ class _LTypeLevelPainter extends CustomPainter {
   final double horizontalAngle;
   final double verticalAngle;
   final bool hasData;
+  final double sz;
 
   _LTypeLevelPainter({
     required this.horizontalAngle,
     required this.verticalAngle,
     required this.hasData,
+    required this.sz,
   });
 
-  // L-shape geometry
-  static const double armThick = 36;
-  static const double vertH = 108;
-  static const double horizW = 108;
-  static const double total = 135;
-  static const double endCap = 7;
+  late final double arm = sz * 0.30;
+  late final double span = sz * 0.70;
+  late final double endCap = sz * 0.05;
+  late final double cornerR = sz * 0.03;
 
-  // Bubble movement range
   static const double maxAngle = 8;
-  static const double maxBubbleOffset = 12;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -62,25 +65,29 @@ class _LTypeLevelPainter extends CustomPainter {
   }
 
   void _drawCorner(Canvas canvas) {
-    final rect = Rect.fromLTWH(0, vertH - armThick, armThick, armThick);
+    final rect = Rect.fromLTWH(0, span, arm, arm);
     final paint = Paint()
-      ..shader = const LinearGradient(
+      ..shader = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF5d7068), Color(0xFF45524d), Color(0xFF35423d)],
+        colors: const [
+          Color(0xFF5d7068),
+          Color(0xFF45524d),
+          Color(0xFF35423d),
+        ],
       ).createShader(rect);
     canvas.drawRect(rect, paint);
 
-    // Corner border
     final borderPaint = Paint()
       ..color = const Color(0x6B373E3E)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.6;
     canvas.drawRect(rect, borderPaint);
   }
 
   void _drawVerticalArm(Canvas canvas) {
-    final rect = Rect.fromLTWH(0, 0, armThick, vertH - armThick);
+    final armLen = span;
+    final rect = Rect.fromLTWH(0, 0, arm, armLen);
     final paint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.centerLeft,
@@ -91,44 +98,49 @@ class _LTypeLevelPainter extends CustomPainter {
           Color(0xFF5d6e67),
         ],
       ).createShader(rect);
+    final r = cornerR;
     final rrect = RRect.fromRectAndCorners(
       rect,
-      topLeft: const Radius.circular(4),
-      topRight: const Radius.circular(4),
+      topLeft: Radius.circular(r),
+      topRight: Radius.circular(r),
     );
     canvas.drawRRect(rrect, paint);
 
-    // Border
     final borderPaint = Paint()
       ..color = const Color(0x6B373E3E)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.6;
     canvas.drawRRect(rrect, borderPaint);
 
-    // Highlight line
+    // Highlight
     final hlPaint = Paint()
       ..color = const Color(0x47FFFFFF)
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.6;
     canvas.drawLine(
-      Offset(2, 4),
-      Offset(2, vertH - armThick - 4),
+      Offset(arm * 0.06, r),
+      Offset(arm * 0.06, armLen - r),
       hlPaint,
     );
 
     // Top end cap
-    final capRect = Rect.fromLTWH(0, 0, armThick, endCap);
+    final capRect = Rect.fromLTWH(0, 0, arm, endCap);
     final capPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
-        colors: const [Color(0xFF1a1f1d), Color(0xFF3a4540), Color(0xFF1a1f1d)],
+        colors: const [
+          Color(0xFF1a1f1d),
+          Color(0xFF3a4540),
+          Color(0xFF1a1f1d),
+        ],
       ).createShader(capRect);
     canvas.drawRect(capRect, capPaint);
   }
 
   void _drawHorizontalArm(Canvas canvas) {
-    final armTop = vertH - armThick;
-    final rect = Rect.fromLTWH(armThick, armTop, horizW - armThick, armThick);
+    final armTop = span;
+    final armLen = span;
+    final rect = Rect.fromLTWH(arm, armTop, armLen, arm);
     final paint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -139,64 +151,65 @@ class _LTypeLevelPainter extends CustomPainter {
           Color(0xFF5d6e67),
         ],
       ).createShader(rect);
+    final r = cornerR;
     final rrect = RRect.fromRectAndCorners(
       rect,
-      bottomLeft: const Radius.circular(4),
-      bottomRight: const Radius.circular(4),
+      bottomLeft: Radius.circular(r),
+      bottomRight: Radius.circular(r),
     );
     canvas.drawRRect(rrect, paint);
 
-    // Border
     final borderPaint = Paint()
       ..color = const Color(0x6B373E3E)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.6;
     canvas.drawRRect(rrect, borderPaint);
 
-    // Highlight line
+    // Highlight
     final hlPaint = Paint()
       ..color = const Color(0x47FFFFFF)
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.6;
     canvas.drawLine(
-      Offset(armThick + 4, armTop + 2),
-      Offset(horizW - 4, armTop + 2),
+      Offset(arm + armLen * 0.05, armTop + arm * 0.06),
+      Offset(arm + armLen - armLen * 0.05, armTop + arm * 0.06),
       hlPaint,
     );
 
     // Right end cap
-    final capRect = Rect.fromLTWH(horizW - endCap, armTop, endCap, armThick);
+    final capRect =
+        Rect.fromLTWH(arm + armLen - endCap, armTop, endCap, arm);
     final capPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: const [Color(0xFF1a1f1d), Color(0xFF3a4540), Color(0xFF1a1f1d)],
+        colors: const [
+          Color(0xFF1a1f1d),
+          Color(0xFF3a4540),
+          Color(0xFF1a1f1d),
+        ],
       ).createShader(capRect);
     canvas.drawRect(capRect, capPaint);
   }
 
   void _drawVerticalVial(Canvas canvas) {
-    const cx = armThick / 2;
-    const vialW = 10.0;
-    const vialH = 54.0;
-    const vialTop = endCap + 10;
-    final vialRect = Rect.fromLTWH(
-      cx - vialW / 2,
-      vialTop,
-      vialW,
-      vialH,
-    );
+    final cx = arm / 2;
+    final vialW = arm * 0.36;
+    final vialH = span * 0.70;
+    final vialTop = endCap + span * 0.10;
+    final vialRect = Rect.fromLTWH(cx - vialW / 2, vialTop, vialW, vialH);
     final rrect =
-        RRect.fromRectAndRadius(vialRect, const Radius.circular(5));
+        RRect.fromRectAndRadius(vialRect, Radius.circular(vialW / 2));
 
     // Recessed slot
+    final gap = sz * 0.015;
     final slotRect = Rect.fromLTWH(
-      cx - vialW / 2 - 2,
-      vialTop - 2,
-      vialW + 4,
-      vialH + 4,
+      cx - vialW / 2 - gap,
+      vialTop - gap,
+      vialW + gap * 2,
+      vialH + gap * 2,
     );
-    final slotRRect =
-        RRect.fromRectAndRadius(slotRect, const Radius.circular(6));
+    final slotRRect = RRect.fromRectAndRadius(
+        slotRect, Radius.circular(vialW / 2 + gap));
     final slotPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topLeft,
@@ -211,7 +224,7 @@ class _LTypeLevelPainter extends CustomPainter {
     final slotBorder = Paint()
       ..color = const Color(0x8A2A332F)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.6;
     canvas.drawRRect(slotRRect, slotBorder);
 
     // Glass tube
@@ -229,34 +242,36 @@ class _LTypeLevelPainter extends CustomPainter {
     final glassBorder = Paint()
       ..color = const Color(0x80373E3E)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
+      ..strokeWidth = 0.5;
     canvas.drawRRect(rrect, glassBorder);
 
     // Scale marks
     final markPaint = Paint()
       ..color = const Color(0x9E44524C)
-      ..strokeWidth = 1.2;
+      ..strokeWidth = 0.8;
     final markY1 = vialTop + vialH * 0.25;
     final markY2 = vialTop + vialH * 0.75;
+    final markMargin = vialW * 0.2;
     canvas.drawLine(
-      Offset(cx - vialW / 2 + 2, markY1),
-      Offset(cx + vialW / 2 - 2, markY1),
+      Offset(cx - vialW / 2 + markMargin, markY1),
+      Offset(cx + vialW / 2 - markMargin, markY1),
       markPaint,
     );
     canvas.drawLine(
-      Offset(cx - vialW / 2 + 2, markY2),
-      Offset(cx + vialW / 2 - 2, markY2),
+      Offset(cx - vialW / 2 + markMargin, markY2),
+      Offset(cx + vialW / 2 - markMargin, markY2),
       markPaint,
     );
 
     // Bubble
     if (hasData) {
+      final maxOffset = vialH * 0.22;
       final clamped = verticalAngle.clamp(-maxAngle, maxAngle);
       final ratio = clamped / maxAngle;
       final centerY = vialTop + vialH / 2;
-      final bubbleY = centerY + ratio * maxBubbleOffset;
-      const bubbleR = 4.2;
-      const bubbleH = 7.0;
+      final bubbleY = centerY + ratio * maxOffset;
+      final bubbleR = vialW * 0.42;
+      final bubbleH = vialW * 0.68;
 
       final bubbleRect = Rect.fromCenter(
         center: Offset(cx, bubbleY),
@@ -264,7 +279,7 @@ class _LTypeLevelPainter extends CustomPainter {
         height: bubbleH,
       );
       final bubbleRRect =
-          RRect.fromRectAndRadius(bubbleRect, const Radius.circular(bubbleR));
+          RRect.fromRectAndRadius(bubbleRect, Radius.circular(bubbleR));
 
       final bubblePaint = Paint()
         ..shader = RadialGradient(
@@ -279,35 +294,32 @@ class _LTypeLevelPainter extends CustomPainter {
 
       final bubbleGlow = Paint()
         ..color = const Color(0x3300ff00)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, sz * 0.022);
       canvas.drawRRect(bubbleRRect, bubbleGlow);
     }
   }
 
   void _drawHorizontalVial(Canvas canvas) {
-    final armTop = vertH - armThick;
-    const cy = armThick / 2;
-    const vialH = 10.0;
-    const vialW = 54.0;
-    final vialLeft = armThick + 10;
-    final vialRect = Rect.fromLTWH(
-      vialLeft,
-      armTop + cy - vialH / 2,
-      vialW,
-      vialH,
-    );
+    final armTop = span;
+    final cy = arm / 2;
+    final vialH = arm * 0.36;
+    final vialW = span * 0.70;
+    final vialLeft = arm + span * 0.10;
+    final vialRect =
+        Rect.fromLTWH(vialLeft, armTop + cy - vialH / 2, vialW, vialH);
     final rrect =
-        RRect.fromRectAndRadius(vialRect, const Radius.circular(5));
+        RRect.fromRectAndRadius(vialRect, Radius.circular(vialH / 2));
 
     // Recessed slot
+    final gap = sz * 0.015;
     final slotRect = Rect.fromLTWH(
-      vialLeft - 2,
-      armTop + cy - vialH / 2 - 2,
-      vialW + 4,
-      vialH + 4,
+      vialLeft - gap,
+      armTop + cy - vialH / 2 - gap,
+      vialW + gap * 2,
+      vialH + gap * 2,
     );
-    final slotRRect =
-        RRect.fromRectAndRadius(slotRect, const Radius.circular(6));
+    final slotRRect = RRect.fromRectAndRadius(
+        slotRect, Radius.circular(vialH / 2 + gap));
     final slotPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topLeft,
@@ -322,7 +334,7 @@ class _LTypeLevelPainter extends CustomPainter {
     final slotBorder = Paint()
       ..color = const Color(0x8A2A332F)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.6;
     canvas.drawRRect(slotRRect, slotBorder);
 
     // Glass tube
@@ -340,34 +352,36 @@ class _LTypeLevelPainter extends CustomPainter {
     final glassBorder = Paint()
       ..color = const Color(0x80373E3E)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
+      ..strokeWidth = 0.5;
     canvas.drawRRect(rrect, glassBorder);
 
     // Scale marks
     final markPaint = Paint()
       ..color = const Color(0x9E44524C)
-      ..strokeWidth = 1.2;
+      ..strokeWidth = 0.8;
     final cx = vialLeft + vialW / 2;
     final markX1 = vialLeft + vialW * 0.25;
     final markX2 = vialLeft + vialW * 0.75;
+    final markMargin = vialH * 0.2;
     canvas.drawLine(
-      Offset(markX1, armTop + cy - vialH / 2 + 2),
-      Offset(markX1, armTop + cy + vialH / 2 - 2),
+      Offset(markX1, armTop + cy - vialH / 2 + markMargin),
+      Offset(markX1, armTop + cy + vialH / 2 - markMargin),
       markPaint,
     );
     canvas.drawLine(
-      Offset(markX2, armTop + cy - vialH / 2 + 2),
-      Offset(markX2, armTop + cy + vialH / 2 - 2),
+      Offset(markX2, armTop + cy - vialH / 2 + markMargin),
+      Offset(markX2, armTop + cy + vialH / 2 - markMargin),
       markPaint,
     );
 
     // Bubble
     if (hasData) {
+      final maxOffset = vialW * 0.22;
       final clamped = horizontalAngle.clamp(-maxAngle, maxAngle);
       final ratio = clamped / maxAngle;
-      final bubbleX = cx + ratio * maxBubbleOffset;
-      const bubbleR = 4.2;
-      const bubbleW = 7.0;
+      final bubbleX = cx + ratio * maxOffset;
+      final bubbleR = vialH * 0.42;
+      final bubbleW = vialH * 0.68;
 
       final bubbleRect = Rect.fromCenter(
         center: Offset(bubbleX, armTop + cy),
@@ -375,7 +389,7 @@ class _LTypeLevelPainter extends CustomPainter {
         height: bubbleR * 2,
       );
       final bubbleRRect =
-          RRect.fromRectAndRadius(bubbleRect, const Radius.circular(bubbleR));
+          RRect.fromRectAndRadius(bubbleRect, Radius.circular(bubbleR));
 
       final bubblePaint = Paint()
         ..shader = RadialGradient(
@@ -390,7 +404,7 @@ class _LTypeLevelPainter extends CustomPainter {
 
       final bubbleGlow = Paint()
         ..color = const Color(0x3300ff00)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, sz * 0.022);
       canvas.drawRRect(bubbleRRect, bubbleGlow);
     }
   }
@@ -399,6 +413,7 @@ class _LTypeLevelPainter extends CustomPainter {
   bool shouldRepaint(covariant _LTypeLevelPainter oldDelegate) {
     return oldDelegate.horizontalAngle != horizontalAngle ||
         oldDelegate.verticalAngle != verticalAngle ||
-        oldDelegate.hasData != hasData;
+        oldDelegate.hasData != hasData ||
+        oldDelegate.sz != sz;
   }
 }

@@ -27,6 +27,7 @@ Future<MeasurePointFormResult?> showMeasurePointFormSheet({
   return showModalBottomSheet<MeasurePointFormResult>(
     context: context,
     isScrollControlled: true,
+    backgroundColor: Colors.transparent,
     builder: (ctx) {
       return _MeasurePointFormSheet(
         initialRecord: initialRecord,
@@ -77,185 +78,238 @@ class _MeasurePointFormSheetState
     super.dispose();
   }
 
+  Color _chipBg(bool selected) =>
+      selected ? const Color(0xFF4A3A12) : const Color(0xFFFFFBF0);
+  Color _chipFg(bool selected) =>
+      selected ? const Color(0xFFFFF4D6) : AppTheme.textPrimary;
+  Color _chipBorder(bool selected) =>
+      selected ? const Color(0xFF4A3A12) : AppTheme.cardBorder;
+
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // drag handle
-          Center(
-            child: Container(
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.only(bottom: bottom),
+      child: SafeArea(
+        top: false,
+        child: FractionallySizedBox(
+          heightFactor: bottom > 0 ? 0.92 : 0.72,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppTheme.cardBg,
+              borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(24)),
             ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            '编辑测点',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.textTitle,
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // type chips
-          const Text('测点类型',
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textLabel)),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: MeasureTypes.all.map((t) {
-              final selected = t == _measureType;
-              return ChoiceChip(
-                label: Text(MeasureTypes.label(t),
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: selected
-                            ? Colors.white
-                            : AppTheme.textPrimary)),
-                selected: selected,
-                selectedColor: const Color(0xFF5A4724),
-                backgroundColor: const Color(0xFFF0E8D5),
-                side: BorderSide.none,
-                visualDensity: VisualDensity.compact,
-                onSelected: (_) {
-                  setState(() {
-                    _measureType = t;
-                    //
-                  });
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-
-          // name
-          TextField(
-            controller: _nameCtrl,
-            decoration: const InputDecoration(
-              labelText: '测点名称',
-              hintText: '例如：电冰箱',
-              filled: true,
-              fillColor: Color(0xFFFFF8ED),
-              border: OutlineInputBorder(
-                  borderSide:
-                      BorderSide(color: AppTheme.cardBorder)),
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-            style: const TextStyle(
-                fontSize: 15, color: AppTheme.textPrimary),
-            onChanged: (_) {},
-          ),
-          const SizedBox(height: 10),
-
-          // space
-          TextField(
-            controller: _spaceCtrl,
-            decoration: const InputDecoration(
-              labelText: '空间/位置',
-              hintText: '例如：客厅',
-              filled: true,
-              fillColor: Color(0xFFFFF8ED),
-              border: OutlineInputBorder(
-                  borderSide:
-                      BorderSide(color: AppTheme.cardBorder)),
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-            style: const TextStyle(
-                fontSize: 15, color: AppTheme.textPrimary),
-            onChanged: (_) {},
-          ),
-          const SizedBox(height: 10),
-
-          // note
-          TextField(
-            controller: _noteCtrl,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: '备注',
-              hintText: '可选',
-              filled: true,
-              fillColor: Color(0xFFFFF8ED),
-              border: OutlineInputBorder(
-                  borderSide:
-                      BorderSide(color: AppTheme.cardBorder)),
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-            style: const TextStyle(
-                fontSize: 15, color: AppTheme.textPrimary),
-            onChanged: (_) {},
-          ),
-          const SizedBox(height: 16),
-
-          // buttons
-          Row(
-            children: [
-              if (widget.allowDelete)
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(
-                      context,
-                      const MeasurePointFormResult(
-                        measureType: 'other',
-                        measureName: '',
-                        spaceName: '',
-                        note: '',
-                        delete: true,
+            child: SingleChildScrollView(
+              padding:
+                  const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // drag handle
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD2B978)
+                            .withValues(alpha: 0.6),
+                        borderRadius:
+                            BorderRadius.circular(3),
                       ),
-                    );
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFA13A2A),
-                  ),
-                  child: const Text('删除测点'),
-                ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('取消'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(
-                    context,
-                    MeasurePointFormResult(
-                      measureType: _measureType,
-                      measureName: _nameCtrl.text.trim(),
-                      spaceName: _spaceCtrl.text.trim(),
-                      note: _noteCtrl.text.trim(),
                     ),
-                  );
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF5A4724),
-                ),
-                child: const Text('保存'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '编辑测点',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textTitle,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // type chips
+                  const Text('测点类型',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textLabel)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: MeasureTypes.all.map((t) {
+                      final selected =
+                          t == _measureType;
+                      return ChoiceChip(
+                        label: Text(
+                            MeasureTypes.label(t),
+                            style: TextStyle(
+                                fontSize: 13,
+                                color:
+                                    _chipFg(selected),
+                                fontWeight: FontWeight.w600)),
+                        selected: selected,
+                        selectedColor: _chipBg(true),
+                        backgroundColor: _chipBg(false),
+                        side: BorderSide(
+                            color:
+                                _chipBorder(selected)),
+                        visualDensity:
+                            VisualDensity.compact,
+                        onSelected: (_) {
+                          setState(
+                              () => _measureType = t);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // name
+                  const Text('测点名称',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textLabel)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _nameCtrl,
+                    decoration: _inputDeco('例如：电冰箱'),
+                    style: const TextStyle(
+                        fontSize: 15,
+                        color: AppTheme.textPrimary),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // space
+                  const Text('空间/位置',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textLabel)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _spaceCtrl,
+                    decoration: _inputDeco('例如：客厅'),
+                    style: const TextStyle(
+                        fontSize: 15,
+                        color: AppTheme.textPrimary),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // note
+                  const Text('备注',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textLabel)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _noteCtrl,
+                    maxLines: 2,
+                    decoration: _inputDeco('可选'),
+                    style: const TextStyle(
+                        fontSize: 15,
+                        color: AppTheme.textPrimary),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // buttons
+                  Row(
+                    children: [
+                      if (widget.allowDelete)
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(
+                              context,
+                              const MeasurePointFormResult(
+                                measureType: 'other',
+                                measureName: '',
+                                spaceName: '',
+                                note: '',
+                                delete: true,
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor:
+                                const Color(0xFFA13A2A),
+                          ),
+                          child:
+                              const Text('删除测点'),
+                        ),
+                      const Spacer(),
+                      OutlinedButton(
+                        onPressed: () =>
+                            Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor:
+                              const Color(0xFF5A4724),
+                          side: const BorderSide(
+                              color: Color(0xFF5A4724)),
+                        ),
+                        child: const Text('取消'),
+                      ),
+                      const SizedBox(width: 10),
+                      FilledButton(
+                        onPressed: () {
+                          Navigator.pop(
+                            context,
+                            MeasurePointFormResult(
+                              measureType: _measureType,
+                              measureName:
+                                  _nameCtrl.text.trim(),
+                              spaceName:
+                                  _spaceCtrl.text.trim(),
+                              note: _noteCtrl.text.trim(),
+                            ),
+                          );
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor:
+                              const Color(0xFF4A3A12),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('保存'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDeco(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(
+          color: AppTheme.textHint, fontSize: 14),
+      filled: true,
+      fillColor: const Color(0xFFFFFBF0),
+      contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: AppTheme.cardBorder),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: AppTheme.cardBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+            color: Color(0xFFC8922E), width: 1.4),
       ),
     );
   }

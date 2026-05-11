@@ -3,6 +3,7 @@ import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../data/models/measure_type.dart';
 import '../../../fengshui/direction_sector.dart';
+import '../utils/plate_record_sorter.dart';
 import '../utils/plate_record_info.dart';
 
 class PalacePointsCard extends StatelessWidget {
@@ -66,7 +67,7 @@ class PalacePointsCard extends StatelessWidget {
               ),
             )
           else
-            ...records.asMap().entries.map((entry) {
+            ...sortPlateRecords(records).asMap().entries.map((entry) {
               final info = buildPlateRecordInfo(
                 record: entry.value,
                 houseGua: houseGua,

@@ -25,15 +25,15 @@ class PalaceElementTheme {
   static Color colorForElement(String element) {
     switch (element) {
       case '木':
-        return const Color(0xFFE1F4E5); // 清新浅绿
+        return const Color(0xFFCFF2D6); // 清亮绿
       case '火':
-        return const Color(0xFFFFE2DC); // 清透浅珊瑚
+        return const Color(0xFFFFD4CC); // 浅珊瑚红
       case '土':
-        return const Color(0xFFFFF0CC); // 明亮浅米黄
+        return const Color(0xFFFFE8A8); // 明亮黄
       case '金':
-        return const Color(0xFFF7F1DF); // 清浅米金
+        return const Color(0xFFFFF5D6); // 浅金白
       case '水':
-        return const Color(0xFFE0F0FA); // 清浅天蓝
+        return const Color(0xFFCFEAFF); // 明确蓝色
       default:
         return const Color(0xFFFFF8E8);
     }

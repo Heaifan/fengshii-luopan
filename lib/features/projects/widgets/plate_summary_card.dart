@@ -3,6 +3,7 @@ import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../data/models/measure_type.dart';
 import '../utils/plate_record_info.dart';
+import '../utils/plate_record_sorter.dart';
 
 class PlateSummaryCard extends StatelessWidget {
   final List<CompassRecord> records;
@@ -48,7 +49,7 @@ class PlateSummaryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          ...records.asMap().entries.map((entry) {
+          ...sortPlateRecords(records).asMap().entries.map((entry) {
             final info = buildPlateRecordInfo(
               record: entry.value,
               houseGua: houseGua,

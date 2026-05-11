@@ -12,6 +12,8 @@ import 'widgets/tiandiren_detail_card.dart';
 import 'widgets/plate_summary_card.dart';
 import 'widgets/palace_points_card.dart';
 import 'widgets/measure_point_form_sheet.dart';
+import 'widgets/project_plate_export_card.dart';
+import 'services/project_plate_export_service.dart';
 
 enum PlateDetailMode { summary, point, palace }
 
@@ -36,6 +38,8 @@ class _SimpleProjectPlatePageState
   String? _selectedSector;
   PlateDetailMode _detailMode = PlateDetailMode.summary;
   bool _loading = true;
+  bool _exporting = false;
+  final GlobalKey _exportKey = GlobalKey();
 
   @override
   void initState() {
@@ -60,6 +64,35 @@ class _SimpleProjectPlatePageState
   String get _projectHouseGua {
     if (_records.isNotEmpty) return _records.first.houseGua;
     return '乾宅';
+  }
+
+  String get _projectSittingFacing {
+    if (_records.isNotEmpty) return _records.first.sittingFacingText;
+    return '未测';
+  }
+
+  Future<void> _exportPlatePng() async {
+    setState(() => _exporting = true);
+    try {
+      // Trigger a frame to render the offstage export card
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final name =
+          '风水荷盘_${widget.project.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}_${DateTime.now().millisecondsSinceEpoch}';
+      final success = await ProjectPlateExportService.captureAndShare(
+        repaintKey: _exportKey,
+        fileName: name,
+      );
+
+      if (!mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('正盘图片已生成，可通过分享保存到相册')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   // ---- Interaction handlers ----
@@ -178,13 +211,51 @@ class _SimpleProjectPlatePageState
         centerTitle: true,
         backgroundColor: const Color(0xFFc8b898),
         foregroundColor: const Color(0xFF333333),
+        actions: [
+          if (_records.isNotEmpty)
+            IconButton(
+              icon: _exporting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Color(0xFF333333)))
+                  : const Icon(Icons.download_rounded),
+              tooltip: '导出图片',
+              onPressed: _exporting ? null : _exportPlatePng,
+            ),
+        ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _records.isEmpty
-              ? _buildEmptyState()
-              : _buildContent(),
+      body: Stack(
+        children: [
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else
+            _buildNonLoadingContent(),
+
+          // Offscreen export card for PNG capture
+          if (!_loading && _records.isNotEmpty)
+            Positioned(
+              left: -2000,
+              top: 0,
+              child: RepaintBoundary(
+                key: _exportKey,
+                child: ProjectPlateExportCard(
+                  project: widget.project,
+                  records: _records,
+                  houseGua: _projectHouseGua,
+                  sittingFacing: _projectSittingFacing,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildNonLoadingContent() {
+    if (_records.isEmpty) return _buildEmptyState();
+    return _buildContent();
   }
 
   Widget _buildEmptyState() {
@@ -331,7 +402,7 @@ class _SimpleProjectPlatePageState
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$houseGua｜$sittingFacing｜测点 ${_records.length}',
+                  '$houseGua｜$sittingFacing｜测点 ${_records.length}个',
                   style: const TextStyle(
                     color: AppTheme.textSecondary,
                     fontSize: 13,

@@ -49,4 +49,10 @@ class SettingsStorage {
     records.insert(0, record);
     await saveRecords(records);
   }
+
+  Future<void> deleteRecord(String id) async {
+    final records = await loadRecords();
+    records.removeWhere((r) => r.id == id);
+    await saveRecords(records);
+  }
 }

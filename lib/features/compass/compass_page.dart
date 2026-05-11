@@ -14,6 +14,7 @@ import 'tilt_service.dart';
 import 'bubble_indicator.dart';
 import 'l_type_level_indicator.dart';
 import '../../fengshui/bazhai_you_nian_table.dart';
+import '../records/compass_records_page.dart';
 
 class CompassPage extends StatefulWidget {
   const CompassPage({super.key});
@@ -552,9 +553,22 @@ class _CompassPageState extends State<CompassPage> {
                                       ScaffoldMessenger.of(
                                               context)
                                           .showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                '罗盘已保存')),
+                                        SnackBar(
+                                          content: const Text(
+                                              '已保存罗盘记录'),
+                                          action: SnackBarAction(
+                                            label: '查看',
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const CompassRecordsPage(),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
                                       );
                                     } catch (_) {
                                       ScaffoldMessenger.of(
@@ -657,6 +671,19 @@ class _CompassPageState extends State<CompassPage> {
         centerTitle: true,
         backgroundColor: const Color(0xFFc8b898),
         foregroundColor: const Color(0xFF333333),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: '罗盘记录',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const CompassRecordsPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(

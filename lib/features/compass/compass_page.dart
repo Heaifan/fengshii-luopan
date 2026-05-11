@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../../data/models/compass_record.dart';
 import '../../data/storage/settings_storage.dart';
 import '../../fengshui/bazhai.dart';
 import '../../fengshui/compass_math.dart';
@@ -10,6 +12,7 @@ import 'compass_status.dart';
 import 'luopan_dial.dart';
 import 'tilt_service.dart';
 import 'bubble_indicator.dart';
+import 'l_type_level_indicator.dart';
 import '../../fengshui/bazhai_you_nian_table.dart';
 
 class CompassPage extends StatefulWidget {
@@ -38,10 +41,21 @@ class _CompassPageState extends State<CompassPage> {
   double _tiltH = 0;
   double _tiltV = 0;
 
-  StreamSubscription<double?>? _headingSub;
+  StreamSubscription<CompassSensorReading>? _headingSub;
   StreamSubscription<TiltData>? _tiltSub;
   bool _settingsLoaded = false;
   bool _showDebug = false;
+
+  // ---- Lock state ----
+  bool _isLocked = false;
+  CompassReading? _lockedReading;
+  double? _lockedHeading;
+  DateTime? _lockedAt;
+
+  double? _lockedTiltH;
+  double? _lockedTiltV;
+  String? _lockedStatusText;
+  Color? _lockedStatusColor;
 
   @override
   void initState() {
@@ -60,17 +74,21 @@ class _CompassPageState extends State<CompassPage> {
 
   Future<void> _loadSettings() async {
     final gua = await _settings.loadHouseGua();
-    final offset = await _settings.loadCalibrationOffset();
+
+    // V0.4.1.3：废弃旧的"设当前为0°"方向偏移，避免真实方位被错误扣减。
+    await _settings.saveCalibrationOffset(0);
+
     setState(() {
       _houseGua = gua;
-      _calibrationOffset = offset;
+      _calibrationOffset = 0;
       _settingsLoaded = true;
     });
   }
 
   void _startSensor() {
-    _headingSub = _sensor.headingStream.listen(
-      (heading) {
+    _headingSub = _sensor.readingStream.listen(
+      (event) {
+        final heading = event.heading;
         if (heading == null) return;
         if (!mounted) return;
 
@@ -109,17 +127,45 @@ class _CompassPageState extends State<CompassPage> {
     });
   }
 
-  double get _displayHeading =>
-      applyCalibration(_smoothedHeading, _calibrationOffset);
+  double get _displayHeading => normalizeDegree(_smoothedHeading);
 
-  void _calibrateToZero() {
-    final source = _rawHeading;
-    setState(() => _calibrationOffset = source);
-    _settings.saveCalibrationOffset(source);
+  // ---- Lock / unlock ----
+
+  void _lockCompass(CompassReading reading, String statusText,
+      Color statusColor) {
+    setState(() {
+      _isLocked = true;
+      _lockedReading = reading;
+      _lockedHeading = _displayHeading;
+      _lockedAt = DateTime.now();
+      _lockedTiltH = _tiltH;
+      _lockedTiltV = _tiltV;
+      _lockedStatusText = statusText;
+      _lockedStatusColor = statusColor;
+    });
+  }
+
+  void _unlockCompass() {
+    setState(() {
+      _isLocked = false;
+      _lockedReading = null;
+      _lockedHeading = null;
+      _lockedAt = null;
+      _lockedTiltH = null;
+      _lockedTiltV = null;
+      _lockedStatusText = null;
+      _lockedStatusColor = null;
+    });
+  }
+
+  void _refreshHeading() {
+    setState(() {
+      _smoothedInitialized = false;
+      _recentHeadings.clear();
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              '已将当前方向设为 0°，偏移 ${source.toStringAsFixed(0)}°')),
+      const SnackBar(content: Text('已重新读取当前罗盘方向')),
     );
   }
 
@@ -146,9 +192,9 @@ class _CompassPageState extends State<CompassPage> {
           '2. 摘掉磁吸手机壳或 MagSafe 配件。\n'
           '3. 将手机缓慢做 8 字形晃动数次。\n'
           '4. 测量时尽量保持手机水平。\n'
-          '5. 若仍然不稳定，可切换到手动测试模式，或用已知方向进行偏移校准。\n\n'
+          '5. 若系统指南针与本 App 差异较大，请以系统指南针为准重新校验环境。\n\n'
           '注意：\n'
-          'App 内的"设当前为0°"只是角度偏移校正，不能消除真实磁场干扰。',
+          '本 App 显示真实罗盘方向，不再使用"设当前为0°"修正真实方位。',
         ),
         actions: [
           TextButton(
@@ -248,6 +294,334 @@ class _CompassPageState extends State<CompassPage> {
     );
   }
 
+  // ======== SAVE SHEET ========
+
+  void _showSaveSheet(CompassReading reading, String statusText) {
+    final nameCtrl = TextEditingController();
+    final locationCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
+    final starElement = starMeta?.element ?? '';
+    final bazhaiText =
+        '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return SafeArea(
+          child: FractionallySizedBox(
+            heightFactor: 0.78,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF7EEDB),
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 36,
+                      height: 4,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFB99A61),
+                        borderRadius:
+                            BorderRadius.all(Radius.circular(999)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('保存罗盘',
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2A2118))),
+                    const SizedBox(height: 8),
+                    const Divider(
+                        height: 1, color: Color(0xFFB99A61)),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        children: [
+                          // ---- Name ----
+                          const Text('记录名称 *',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2A2118))),
+                          const SizedBox(height: 4),
+                          TextFormField(
+                            controller: nameCtrl,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              hintText: '例如：A小区 3栋 1201',
+                              hintStyle: TextStyle(
+                                  color: Color(0xFFB99A61),
+                                  fontSize: 13),
+                              filled: true,
+                              fillColor: Color(0xFFFFF8ED),
+                              border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Color(0xFFB99A61))),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                            ),
+                            validator: (v) =>
+                                (v == null || v.trim().isEmpty)
+                                    ? '请输入记录名称'
+                                    : null,
+                          ),
+                          const SizedBox(height: 12),
+                          // ---- Location ----
+                          const Text('地点（可选）',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2A2118))),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: locationCtrl,
+                            decoration: const InputDecoration(
+                              hintText: '例如：XX小区、办公室、店铺',
+                              hintStyle: TextStyle(
+                                  color: Color(0xFFB99A61),
+                                  fontSize: 13),
+                              filled: true,
+                              fillColor: Color(0xFFFFF8ED),
+                              border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Color(0xFFB99A61))),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // ---- Note ----
+                          const Text('备注（可选）',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2A2118))),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: noteCtrl,
+                            maxLines: 2,
+                            decoration: const InputDecoration(
+                              hintText:
+                                  '例如：站在客厅中心，手机朝向阳台测量',
+                              hintStyle: TextStyle(
+                                  color: Color(0xFFB99A61),
+                                  fontSize: 13),
+                              filled: true,
+                              fillColor: Color(0xFFFFF8ED),
+                              border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Color(0xFFB99A61))),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // ---- Measurement summary ----
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF8ED),
+                              borderRadius:
+                                  BorderRadius.circular(8),
+                              border: Border.all(
+                                  color:
+                                      const Color(0xFFB99A61)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                const Text('测量信息',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight:
+                                            FontWeight.bold,
+                                        color:
+                                            Color(0xFF5A4724))),
+                                const SizedBox(height: 6),
+                                _summaryRow(
+                                    '方向',
+                                    '${compassDirectionName(reading.facingDegree)}${reading.facingDegree.toStringAsFixed(0)}°'),
+                                _summaryRow('坐向',
+                                    reading.sittingFacingText),
+                                _summaryRow(
+                                    '宫位／向山',
+                                    '${reading.facingGua}宫｜${reading.fullSanyuanText}'),
+                                _summaryRow(
+                                    '八宅', bazhaiText),
+                                _summaryRow('状态',
+                                    statusText),
+                                _summaryRow(
+                                    '时间',
+                                    DateFormat(
+                                            'yyyy-MM-dd HH:mm')
+                                        .format(DateTime.now())),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // ---- Buttons ----
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () =>
+                                      Navigator.pop(ctx),
+                                  style:
+                                      OutlinedButton.styleFrom(
+                                    foregroundColor:
+                                        const Color(
+                                            0xFF5A4724),
+                                    side: const BorderSide(
+                                        color: Color(
+                                            0xFFB99A61)),
+                                    padding:
+                                        const EdgeInsets
+                                            .symmetric(
+                                            vertical: 12),
+                                  ),
+                                  child: const Text('取消'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 2,
+                                child: FilledButton(
+                                  onPressed: () async {
+                                    if (!formKey.currentState!
+                                        .validate()) return;
+
+                                    final record =
+                                        CompassRecord.create(
+                                      name:
+                                          nameCtrl.text.trim(),
+                                      location: locationCtrl
+                                              .text
+                                              .trim()
+                                              .isEmpty
+                                          ? null
+                                          : locationCtrl.text
+                                              .trim(),
+                                      note: noteCtrl
+                                              .text
+                                              .trim()
+                                              .isEmpty
+                                          ? null
+                                          : noteCtrl.text
+                                              .trim(),
+                                      heading:
+                                          reading.facingDegree,
+                                      directionText:
+                                          '${compassDirectionName(reading.facingDegree)}${reading.facingDegree.toStringAsFixed(0)}°',
+                                      sittingFacingText: reading
+                                          .sittingFacingText,
+                                      sittingMountain:
+                                          reading.sittingMountain,
+                                      facingMountain:
+                                          reading.facingMountain,
+                                      palace:
+                                          '${reading.facingGua}宫',
+                                      mountainText:
+                                          reading.fullSanyuanText,
+                                      bazhaiText: bazhaiText,
+                                      statusText:
+                                          statusText,
+                                      horizontalAngle:
+                                          _lockedTiltH ?? 0,
+                                      verticalAngle:
+                                          _lockedTiltV ?? 0,
+                                      houseGua: _houseGua,
+                                    );
+
+                                    try {
+                                      await _settings
+                                          .addRecord(record);
+                                      Navigator.pop(ctx);
+                                      ScaffoldMessenger.of(
+                                              context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                '罗盘已保存')),
+                                      );
+                                    } catch (_) {
+                                      ScaffoldMessenger.of(
+                                              context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                '保存失败，请重试')),
+                                      );
+                                    }
+                                  },
+                                  style:
+                                      FilledButton.styleFrom(
+                                    backgroundColor:
+                                        const Color(
+                                            0xFF5A4724),
+                                    foregroundColor:
+                                        Colors.white,
+                                    padding:
+                                        const EdgeInsets
+                                            .symmetric(
+                                            vertical: 12),
+                                  ),
+                                  child: const Text('保存',
+                                      style: TextStyle(
+                                          fontSize: 15)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _summaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 11, color: Color(0xFF9A8A6A))),
+          ),
+          Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2A2118))),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ======== BUILD ========
 
   @override
@@ -260,11 +634,18 @@ class _CompassPageState extends State<CompassPage> {
     }
 
     final reading = CompassReadingBuilder.build(
-      degree: _displayHeading,
+      degree: _isLocked ? (_lockedHeading ?? _displayHeading) : _displayHeading,
       houseGua: _houseGua,
     );
 
-    final discRotationDeg = luopanVisualOffset - _displayHeading;
+    final displayHeading =
+        _isLocked ? (_lockedHeading ?? _displayHeading) : _displayHeading;
+    final discRotationDeg = luopanVisualOffset - displayHeading;
+
+    // Status for top panel & lock snapshot
+    final status = _buildStatus();
+    final displayReading =
+        _isLocked ? (_lockedReading ?? reading) : reading;
 
     return Scaffold(
       backgroundColor: const Color(0xFFD8D6CF),
@@ -280,7 +661,8 @@ class _CompassPageState extends State<CompassPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopPanel(reading, discRotationDeg),
+            _buildTopPanel(
+                displayReading, reading, discRotationDeg, status),
             // ---- Luopan disc with bubble overlay ----
             Expanded(
               child: Stack(
@@ -291,57 +673,70 @@ class _CompassPageState extends State<CompassPage> {
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 500),
                       child: LuopanDial(
-                        heading: _displayHeading,
+                        heading: displayHeading,
                         houseGua: _houseGua,
                       ),
                     ),
                   ),
                   Positioned(
-                    left: 20,
-                    top: 4,
-                    child: _buildLeftBubbleGroup(),
+                    left: 4,
+                    bottom: 4,
+                    child: _buildLevelIndicator(),
                   ),
                 ],
               ),
             ),
             // ---- Bottom controls ----
-            _buildBottomPanel(reading),
+            _buildBottomPanel(reading, status),
           ],
         ),
       ),
     );
   }
 
-  // ======== TOP PANEL ========
+  // ---- Status helper ----
 
-  Widget _buildTopPanel(CompassReading reading, double discRotationDeg) {
-    // Bazhai star with element
-    final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
-    final starElement = starMeta?.element ?? '';
-    final bazhaiText = '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
-
-    // Combined status
+  ({String text, Color color}) _buildStatus() {
     final hStatus = tiltStatus(_tiltH);
     final vStatus = tiltStatus(_tiltV);
-    final tiltBothGood = hStatus == TiltStatus.good && vStatus == TiltStatus.good;
-    final tiltAnyBad = hStatus == TiltStatus.bad || vStatus == TiltStatus.bad;
-    String statusText;
-    Color statusColor;
+    final tiltBothGood =
+        hStatus == TiltStatus.good && vStatus == TiltStatus.good;
+    final tiltAnyBad =
+        hStatus == TiltStatus.bad || vStatus == TiltStatus.bad;
+    String text;
+    Color color;
     if (_magneticStatus == MagneticStatus.normal) {
       if (tiltBothGood) {
-        statusText = '磁场正常｜校准良好';
-        statusColor = const Color(0xFF4CAF50);
+        text = '磁场正常｜校准良好';
+        color = const Color(0xFF4CAF50);
       } else if (tiltAnyBad) {
-        statusText = '磁场正常｜姿态偏差大';
-        statusColor = const Color(0xFFEF5350);
+        text = '磁场正常｜姿态偏差大';
+        color = const Color(0xFFEF5350);
       } else {
-        statusText = '磁场正常｜轻微偏移';
-        statusColor = const Color(0xFFFFC107);
+        text = '磁场正常｜轻微偏移';
+        color = const Color(0xFFFFC107);
       }
     } else {
-      statusText = '${_magneticStatus.label}｜姿态偏差大';
-      statusColor = const Color(0xFFEF5350);
+      text = '${_magneticStatus.label}｜姿态偏差大';
+      color = const Color(0xFFEF5350);
     }
+    return (text: text, color: color);
+  }
+
+  // ======== TOP PANEL ========
+
+  Widget _buildTopPanel(CompassReading displayReading,
+      CompassReading liveReading, double discRotationDeg,
+      ({String text, Color color}) status) {
+    final reading = _isLocked ? displayReading : liveReading;
+    final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
+    final starElement = starMeta?.element ?? '';
+    final bazhaiText =
+        '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
+
+    final statusText =
+        _isLocked ? '已锁定｜${status.text}' : status.text;
+    final statusColor = status.color;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -349,18 +744,41 @@ class _CompassPageState extends State<CompassPage> {
       decoration: BoxDecoration(
         color: const Color(0xFFF8EED8),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFB99A61), width: 1),
+        border: Border.all(
+            color: _isLocked
+                ? const Color(0xFF5A4724)
+                : const Color(0xFFB99A61),
+            width: _isLocked ? 2 : 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row 1: compass reading
-          Text(
-            '${compassDirectionName(reading.facingDegree)}${reading.facingDegree.toStringAsFixed(0)}°',
-            style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2A2118)),
+          // Row 1: compass reading + lock badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${compassDirectionName(reading.facingDegree)}${reading.facingDegree.toStringAsFixed(0)}°',
+                style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2A2118)),
+              ),
+              if (_isLocked) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5A4724),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text('已锁定',
+                      style:
+                          TextStyle(fontSize: 10, color: Colors.white)),
+                ),
+              ],
+            ],
           ),
           // Row 2: sitting-facing
           Text(
@@ -430,22 +848,26 @@ class _CompassPageState extends State<CompassPage> {
 
   // ======== SHOULDER BUBBLES ========
 
-  Widget _buildLeftBubbleGroup() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        MiniBubbleIndicator(label: '水平', angle: _tiltH),
-        const SizedBox(height: 4),
-        VerticalMiniBubble(label: '垂直', angle: _tiltV),
-      ],
+  Widget _buildLevelIndicator() {
+    final h = _isLocked ? (_lockedTiltH ?? _tiltH) : _tiltH;
+    final v = _isLocked ? (_lockedTiltV ?? _tiltV) : _tiltV;
+    return LTypeLevelIndicator(
+      horizontalAngle: h,
+      verticalAngle: v,
     );
   }
 
   // ======== BOTTOM PANEL ========
 
-  Widget _buildBottomPanel(CompassReading reading) {
+  Widget _buildBottomPanel(
+      CompassReading reading,
+      ({String text, Color color}) status) {
     final group = getHouseGroup(_houseGua);
+    final hStatus = tiltStatus(_tiltH);
+    final vStatus = tiltStatus(_tiltV);
+    final tiltAnyBad =
+        hStatus == TiltStatus.bad || vStatus == TiltStatus.bad;
+
     return Container(
       color: const Color(0xFFe8e0d0),
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
@@ -461,12 +883,13 @@ class _CompassPageState extends State<CompassPage> {
               GestureDetector(
                 onTap: _showHouseGuaPicker,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF0E8D5),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFB99A61)),
+                    border:
+                        Border.all(color: const Color(0xFFB99A61)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -479,7 +902,8 @@ class _CompassPageState extends State<CompassPage> {
                       const SizedBox(width: 4),
                       Text(group,
                           style: const TextStyle(
-                              fontSize: 11, color: Color(0xFF7A6040))),
+                              fontSize: 11,
+                              color: Color(0xFF7A6040))),
                       const Icon(Icons.arrow_drop_down,
                           color: Color(0xFF7A6040), size: 16),
                     ],
@@ -488,23 +912,91 @@ class _CompassPageState extends State<CompassPage> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          // ---- Main action buttons ----
+          if (_isLocked) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _unlockCompass,
+                    icon: const Icon(Icons.lock_open, size: 16),
+                    label: const Text('解锁',
+                        style: TextStyle(fontSize: 13)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF5A4724),
+                      side: const BorderSide(
+                          color: Color(0xFFB99A61)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: FilledButton.icon(
+                    onPressed: () =>
+                        _showSaveSheet(reading, status.text),
+                    icon: const Icon(Icons.save_alt, size: 16),
+                    label: const Text('保存罗盘',
+                        style: TextStyle(fontSize: 13)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF5A4724),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () =>
+                        _lockCompass(reading, status.text, status.color),
+                    icon: const Icon(Icons.lock, size: 16),
+                    label: const Text('锁定罗盘',
+                        style: TextStyle(fontSize: 14)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF5A4724),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
+                    ),
+                  ),
+                ),
+                if (tiltAnyBad)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text('当前姿态偏差大，建议调整后再锁定',
+                        style: TextStyle(
+                            fontSize: 11, color: Color(0xFFC43C32))),
+                  ),
+              ],
+            ),
+          ],
           const SizedBox(height: 6),
-          // Calibration buttons
+          // ---- Secondary buttons ----
           Wrap(
             spacing: 6,
             runSpacing: 4,
             alignment: WrapAlignment.center,
             children: [
               FilledButton.icon(
-                onPressed: _calibrateToZero,
+                onPressed: _refreshHeading,
                 icon: const Icon(Icons.gps_fixed, size: 14),
-                label:
-                    const Text('设当前为0°', style: TextStyle(fontSize: 12)),
+                label: const Text('方向重读',
+                    style: TextStyle(fontSize: 12)),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF5A4724),
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                 ),
               ),
               OutlinedButton(
@@ -512,31 +1004,41 @@ class _CompassPageState extends State<CompassPage> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF5A4724),
                   side: const BorderSide(color: Color(0xFFB99A61)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                 ),
-                child:
-                    const Text('重置校准', style: TextStyle(fontSize: 12)),
+                child: const Text('重置校准',
+                    style: TextStyle(fontSize: 12)),
               ),
               OutlinedButton(
                 onPressed: _showCalibrationGuide,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF5A4724),
                   side: const BorderSide(color: Color(0xFFB99A61)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                 ),
-                child:
-                    const Text('校准说明', style: TextStyle(fontSize: 12)),
+                child: const Text('校准说明',
+                    style: TextStyle(fontSize: 12)),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            '校准偏移：${_calibrationOffset.toStringAsFixed(0)}°',
-            style:
-                const TextStyle(fontSize: 11, color: Color(0xFF9A8A6A)),
+          const Text(
+            '方向：真实罗盘',
+            style: TextStyle(fontSize: 11, color: Color(0xFF9A8A6A)),
           ),
+          if (_showDebug)
+            Text(
+              'raw:${_rawHeading.toStringAsFixed(1)}° '
+              'smooth:${_smoothedHeading.toStringAsFixed(1)}° '
+              'display:${_displayHeading.toStringAsFixed(1)}°',
+              style: const TextStyle(
+                fontSize: 10,
+                color: Color(0xFF888888),
+                fontFamily: 'monospace',
+              ),
+            ),
         ],
       ),
     );

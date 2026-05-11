@@ -53,9 +53,9 @@ class TiandirenPlatePainter extends CustomPainter {
     'northWest': '西北',
   };
 
-  static const _selectedGold = Color(0xFFC79A3B);
-  static const _auspiciousColor = Color(0xFF2F6B3A);
-  static const _inauspiciousColor = Color(0xFF8A2E21);
+  static const _selectedGold = Color(0xFFC8922E);
+  static const _auspiciousColor = Color(0xFF2E7D4F);
+  static const _inauspiciousColor = Color(0xFFA13A2A);
   static const _textPrimary = Color(0xFF20160D);
 
   @override
@@ -80,12 +80,12 @@ class TiandirenPlatePainter extends CustomPainter {
   void _drawBackground(Canvas canvas, Offset center, double R) {
     canvas.drawCircle(
       center, R,
-      Paint()..color = const Color(0xFFF8EED8),
+      Paint()..color = const Color(0xFFFFFBF0),
     );
     canvas.drawCircle(
       center, R,
       Paint()
-        ..color = const Color(0xFFA88A52).withValues(alpha: 0.25)
+        ..color = const Color(0xFFC9A96A).withValues(alpha: 0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
@@ -103,7 +103,7 @@ class TiandirenPlatePainter extends CustomPainter {
       ..addOval(Rect.fromCircle(center: center, radius: outerR))
       ..addOval(Rect.fromCircle(center: center, radius: innerR))
       ..fillType = PathFillType.evenOdd;
-    canvas.drawPath(ringPath, Paint()..color = const Color(0xFFF0E8D5));
+    canvas.drawPath(ringPath, Paint()..color = const Color(0xFFFFF6E3));
 
     String? selMountain;
     if (selectedRecord != null) {
@@ -122,7 +122,7 @@ class TiandirenPlatePainter extends CustomPainter {
         center + Offset(math.cos(startRad) * innerR, math.sin(startRad) * innerR),
         center + Offset(math.cos(startRad) * outerR, math.sin(startRad) * outerR),
         Paint()
-          ..color = const Color(0xFF9A7A3D).withValues(alpha: 0.2)
+          ..color = const Color(0xFFD2B978).withValues(alpha: 0.25)
           ..strokeWidth = 0.5,
       );
 
@@ -217,7 +217,7 @@ class TiandirenPlatePainter extends CustomPainter {
 
     // grid lines
     final linePaint = Paint()
-      ..color = const Color(0xFFA88A52).withValues(alpha: 0.3)
+      ..color = const Color(0xFFBFA05F).withValues(alpha: 0.35)
       ..strokeWidth = 1.0;
 
     for (int col = 1; col < 3; col++) {

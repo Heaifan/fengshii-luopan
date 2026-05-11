@@ -25,17 +25,17 @@ class PalaceElementTheme {
   static Color colorForElement(String element) {
     switch (element) {
       case '木':
-        return const Color(0xFFDCEFE1); // 清新青绿
+        return const Color(0xFFE1F4E5); // 清新浅绿
       case '火':
-        return const Color(0xFFF8DDD8); // 淡粉橙
+        return const Color(0xFFFFE2DC); // 清透浅珊瑚
       case '土':
-        return const Color(0xFFF3E8CC); // 浅米
+        return const Color(0xFFFFF0CC); // 明亮浅米黄
       case '金':
-        return const Color(0xFFF1EADF); // 淡灰金
+        return const Color(0xFFF7F1DF); // 清浅米金
       case '水':
-        return const Color(0xFFDDEBF3); // 浅蓝灰
+        return const Color(0xFFE0F0FA); // 清浅天蓝
       default:
-        return const Color(0xFFF7F0DD);
+        return const Color(0xFFFFF8E8);
     }
   }
 }

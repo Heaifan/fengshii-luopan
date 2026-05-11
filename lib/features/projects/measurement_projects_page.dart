@@ -148,6 +148,7 @@ class _MeasurementProjectsPageState
         );
         await _loadProjects();
       },
+      onLongPress: () => _confirmDeleteProject(p),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -191,6 +192,50 @@ class _MeasurementProjectsPageState
                 color: AppTheme.textHint),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteProject(
+      MeasurementProject project) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('删除项目？'),
+          content: Text(
+            '将删除"${project.name}"以及该项目下的所有测点记录，此操作不可恢复。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFA13A2A),
+              ),
+              child: const Text('删除'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    await _storage.deleteProject(project.id);
+
+    if (!mounted) return;
+
+    await _loadProjects();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已删除项目：${project.name}'),
       ),
     );
   }

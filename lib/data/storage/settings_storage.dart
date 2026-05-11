@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/compass_record.dart';
+import '../models/measurement_project.dart';
 
 class SettingsStorage {
   static const _keyHouseGua = 'house_gua';
   static const _keyCalibrationOffset = 'calibration_offset';
   static const _keyRecords = 'compass_records';
+  static const _keyProjects = 'measurement_projects';
   static const _defaultHouseGua = '乾';
 
   Future<String> loadHouseGua() async {
@@ -27,6 +29,8 @@ class SettingsStorage {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyCalibrationOffset, offset);
   }
+
+  // ---- Records ----
 
   Future<List<CompassRecord>> loadRecords() async {
     final prefs = await SharedPreferences.getInstance();
@@ -54,5 +58,51 @@ class SettingsStorage {
     final records = await loadRecords();
     records.removeWhere((r) => r.id == id);
     await saveRecords(records);
+  }
+
+  Future<List<CompassRecord>> loadRecordsByProject(
+      String projectId) async {
+    final records = await loadRecords();
+    return records
+        .where((r) => r.projectId == projectId)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  // ---- Projects ----
+
+  Future<List<MeasurementProject>> loadProjects() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyProjects);
+    if (raw == null || raw.isEmpty) return [];
+    final list = jsonDecode(raw) as List<dynamic>;
+    return list
+        .map((e) =>
+            MeasurementProject.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> saveProjects(
+      List<MeasurementProject> projects) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw =
+        jsonEncode(projects.map((r) => r.toJson()).toList());
+    await prefs.setString(_keyProjects, raw);
+  }
+
+  Future<void> addProject(MeasurementProject project) async {
+    final projects = await loadProjects();
+    projects.insert(0, project);
+    await saveProjects(projects);
+  }
+
+  Future<void> deleteProject(String id) async {
+    final projects = await loadProjects();
+    projects.removeWhere((p) => p.id == id);
+    // Also delete all records belonging to this project
+    final records = await loadRecords();
+    records.removeWhere((r) => r.projectId == id);
+    await saveRecords(records);
+    await saveProjects(projects);
   }
 }

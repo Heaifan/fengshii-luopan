@@ -21,6 +21,12 @@ class CompassRecord {
   final double verticalAngle;
   final String houseGua;
 
+  // Project measurement fields
+  final String? projectId;
+  final String measureType;
+  final String? measureName;
+  final String? spaceName;
+
   const CompassRecord({
     required this.id,
     required this.name,
@@ -39,6 +45,10 @@ class CompassRecord {
     required this.horizontalAngle,
     required this.verticalAngle,
     required this.houseGua,
+    this.projectId,
+    this.measureType = 'other',
+    this.measureName,
+    this.spaceName,
   });
 
   factory CompassRecord.create({
@@ -57,6 +67,10 @@ class CompassRecord {
     required double horizontalAngle,
     required double verticalAngle,
     required String houseGua,
+    String? projectId,
+    String measureType = 'other',
+    String? measureName,
+    String? spaceName,
   }) {
     return CompassRecord(
       id: const Uuid().v4(),
@@ -76,6 +90,10 @@ class CompassRecord {
       horizontalAngle: horizontalAngle,
       verticalAngle: verticalAngle,
       houseGua: houseGua,
+      projectId: projectId,
+      measureType: measureType,
+      measureName: measureName,
+      spaceName: spaceName,
     );
   }
 
@@ -97,6 +115,10 @@ class CompassRecord {
         'horizontalAngle': horizontalAngle,
         'verticalAngle': verticalAngle,
         'houseGua': houseGua,
+        'projectId': projectId,
+        'measureType': measureType,
+        'measureName': measureName,
+        'spaceName': spaceName,
       };
 
   factory CompassRecord.fromJson(Map<String, dynamic> json) {
@@ -118,6 +140,10 @@ class CompassRecord {
       horizontalAngle: (json['horizontalAngle'] as num).toDouble(),
       verticalAngle: (json['verticalAngle'] as num).toDouble(),
       houseGua: json['houseGua'] as String,
+      projectId: json['projectId'] as String?,
+      measureType: json['measureType'] as String? ?? 'other',
+      measureName: json['measureName'] as String?,
+      spaceName: json['spaceName'] as String?,
     );
   }
 }

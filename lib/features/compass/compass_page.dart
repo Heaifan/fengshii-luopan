@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/models/compass_record.dart';
+import '../../data/models/measure_type.dart';
+import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
 import '../../fengshui/bazhai.dart';
 import '../../fengshui/compass_math.dart';
@@ -16,9 +18,16 @@ import 'l_type_level_indicator.dart';
 import '../../app/theme.dart';
 import '../../fengshui/bazhai_you_nian_table.dart';
 import '../records/compass_records_page.dart';
+import '../projects/measurement_project_detail_page.dart';
+import '../projects/measurement_projects_page.dart';
+import '../projects/new_measurement_project_page.dart';
 
 class CompassPage extends StatefulWidget {
-  const CompassPage({super.key});
+  final MeasurementProject? activeProject;
+
+  const CompassPage({super.key, this.activeProject});
+
+  bool get isProjectMode => activeProject != null;
 
   @override
   State<CompassPage> createState() => _CompassPageState();
@@ -58,6 +67,8 @@ class _CompassPageState extends State<CompassPage> {
   double? _lockedTiltV;
   String? _lockedStatusText;
   Color? _lockedStatusColor;
+
+  int _savedPointCount = 0;
 
   @override
   void initState() {
@@ -629,6 +640,443 @@ class _CompassPageState extends State<CompassPage> {
     );
   }
 
+  // ======== SAVE POINT SHEET (project mode) ========
+
+  void _showSavePointSheet(CompassReading reading, String statusText) {
+    final measureNameCtrl = TextEditingController();
+    final spaceNameCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    String measureType = MeasureTypes.door;
+
+    final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
+    final starElement = starMeta?.element ?? '';
+    final bazhaiText =
+        '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return SafeArea(
+              child: FractionallySizedBox(
+                heightFactor: 0.76,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF7EEDB),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        Container(
+                          width: 36,
+                          height: 4,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFB99A61),
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(999)),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text('保存测点',
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2A2118))),
+                        Text(widget.activeProject!.name,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF9A8A6A))),
+                        const SizedBox(height: 8),
+                        const Divider(
+                            height: 1, color: Color(0xFFB99A61)),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            children: [
+                              // ---- Measure type chips ----
+                              const Text('测点类型',
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textLabel)),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children:
+                                    MeasureTypes.all.map((t) {
+                                  final selected = t == measureType;
+                                  return ChoiceChip(
+                                    label: Text(
+                                        MeasureTypes.label(t),
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: selected
+                                                ? Colors.white
+                                                : AppTheme
+                                                    .textPrimary)),
+                                    selected: selected,
+                                    selectedColor:
+                                        const Color(0xFF5A4724),
+                                    backgroundColor:
+                                        const Color(0xFFF0E8D5),
+                                    side: BorderSide(
+                                        color: selected
+                                            ? const Color(
+                                                0xFF5A4724)
+                                            : AppTheme
+                                                .cardBorder),
+                                    onSelected: (_) =>
+                                        setSheetState(() =>
+                                            measureType = t),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 10),
+
+                              // ---- Measure name ----
+                              const Text('测点名称（可选）',
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textLabel)),
+                              const SizedBox(height: 2),
+                              TextField(
+                                controller: measureNameCtrl,
+                                style: const TextStyle(
+                                    color: AppTheme.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600),
+                                decoration: const InputDecoration(
+                                  hintText:
+                                      '例如：入户门、客厅阳台、主卧床头',
+                                  hintStyle: TextStyle(
+                                      color: AppTheme.textHint,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500),
+                                  filled: true,
+                                  fillColor: Color(0xFFFFF8ED),
+                                  border: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color:
+                                              Color(0xFFB99A61))),
+                                  contentPadding:
+                                      EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // ---- Space name ----
+                              const Text('空间 / 位置（可选）',
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textLabel)),
+                              const SizedBox(height: 2),
+                              TextField(
+                                controller: spaceNameCtrl,
+                                style: const TextStyle(
+                                    color: AppTheme.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600),
+                                decoration: const InputDecoration(
+                                  hintText:
+                                      '例如：客厅、主卧、厨房',
+                                  hintStyle: TextStyle(
+                                      color: AppTheme.textHint,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500),
+                                  filled: true,
+                                  fillColor: Color(0xFFFFF8ED),
+                                  border: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color:
+                                              Color(0xFFB99A61))),
+                                  contentPadding:
+                                      EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // ---- Note ----
+                              const Text('备注（可选）',
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textLabel)),
+                              const SizedBox(height: 2),
+                              TextField(
+                                controller: noteCtrl,
+                                maxLines: 2,
+                                style: const TextStyle(
+                                    color: AppTheme.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600),
+                                decoration: const InputDecoration(
+                                  hintText:
+                                      '例如：站在客厅中心，手机朝向阳台测量',
+                                  hintStyle: TextStyle(
+                                      color: AppTheme.textHint,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500),
+                                  filled: true,
+                                  fillColor: Color(0xFFFFF8ED),
+                                  border: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color:
+                                              Color(0xFFB99A61))),
+                                  contentPadding:
+                                      EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // ---- Summary ----
+                              Container(
+                                padding:
+                                    const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color:
+                                      const Color(0xFFFFF8ED),
+                                  borderRadius:
+                                      BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: const Color(
+                                          0xFFB99A61)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('测量信息',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight:
+                                                FontWeight.bold,
+                                            color: AppTheme
+                                                .textTitle)),
+                                    const SizedBox(height: 4),
+                                    _summaryRow(
+                                        '方向',
+                                        '${compassDirectionName(reading.facingDegree)}${reading.facingDegree.toStringAsFixed(0)}°'),
+                                    _summaryRow('坐向',
+                                        reading.sittingFacingText),
+                                    _summaryRow(
+                                        '八宅', bazhaiText),
+                                    _summaryRow('状态',
+                                        statusText),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // ---- Buttons ----
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx),
+                                      style: OutlinedButton
+                                          .styleFrom(
+                                        foregroundColor:
+                                            const Color(
+                                                0xFF5A4724),
+                                        side: const BorderSide(
+                                            color: Color(
+                                                0xFFB99A61)),
+                                        padding: const EdgeInsets
+                                            .symmetric(
+                                            vertical: 12),
+                                      ),
+                                      child: const Text(
+                                          '取消'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    flex: 2,
+                                    child: FilledButton(
+                                      onPressed: () async {
+                                        final record =
+                                            CompassRecord
+                                                .create(
+                                          name: measureNameCtrl
+                                                  .text
+                                                  .trim()
+                                                  .isEmpty
+                                              ? '${MeasureTypes.label(measureType)}测点'
+                                              : measureNameCtrl
+                                                  .text
+                                                  .trim(),
+                                          projectId: widget
+                                              .activeProject!
+                                              .id,
+                                          measureType:
+                                              measureType,
+                                          measureName:
+                                              measureNameCtrl
+                                                      .text
+                                                      .trim()
+                                                      .isEmpty
+                                                  ? null
+                                                  : measureNameCtrl
+                                                      .text
+                                                      .trim(),
+                                          spaceName: spaceNameCtrl
+                                                  .text
+                                                  .trim()
+                                                  .isEmpty
+                                              ? null
+                                              : spaceNameCtrl
+                                                  .text
+                                                  .trim(),
+                                          note: noteCtrl
+                                                  .text
+                                                  .trim()
+                                                  .isEmpty
+                                              ? null
+                                              : noteCtrl
+                                                  .text
+                                                  .trim(),
+                                          heading: reading
+                                              .facingDegree,
+                                          directionText:
+                                              '${compassDirectionName(reading.facingDegree)}${reading.facingDegree.toStringAsFixed(0)}°',
+                                          sittingFacingText: reading
+                                              .sittingFacingText,
+                                          sittingMountain: reading
+                                              .sittingMountain,
+                                          facingMountain: reading
+                                              .facingMountain,
+                                          palace:
+                                              '${reading.facingGua}宫',
+                                          mountainText: reading
+                                              .fullSanyuanText,
+                                          bazhaiText:
+                                              bazhaiText,
+                                          statusText:
+                                              statusText,
+                                          horizontalAngle:
+                                              _lockedTiltH ?? 0,
+                                          verticalAngle:
+                                              _lockedTiltV ?? 0,
+                                          houseGua:
+                                              _houseGua,
+                                        );
+
+                                        try {
+                                          await _settings
+                                              .addRecord(
+                                                  record);
+                                          setState(() =>
+                                              _savedPointCount++);
+                                          _unlockCompass();
+                                          Navigator.pop(ctx);
+                                          ScaffoldMessenger
+                                                  .of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  '已保存测点：${MeasureTypes.label(measureType)} · ${record.name}'),
+                                            ),
+                                          );
+                                        } catch (_) {
+                                          ScaffoldMessenger
+                                                  .of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    '保存失败，请重试')),
+                                          );
+                                        }
+                                      },
+                                      style: FilledButton
+                                          .styleFrom(
+                                        backgroundColor:
+                                            const Color(
+                                                0xFF5A4724),
+                                        foregroundColor:
+                                            Colors.white,
+                                        padding: const EdgeInsets
+                                            .symmetric(
+                                            vertical: 12),
+                                      ),
+                                      child: const Text(
+                                          '保存并继续',
+                                          style: TextStyle(
+                                              fontSize: 15)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ---- Finish measurement ----
+
+  void _finishMeasurement() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('完成测量'),
+        content: Text(
+            '已完成本次测量，共保存 $_savedPointCount 个测点。可在项目详情中查看。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('继续测量'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MeasurementProjectDetailPage(
+                    project: widget.activeProject!,
+                  ),
+                ),
+              );
+            },
+            child: const Text('完成',
+                style: TextStyle(
+                    color: Color(0xFF5A4724),
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _summaryRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
@@ -688,22 +1136,66 @@ class _CompassPageState extends State<CompassPage> {
         backgroundColor: const Color(0xFFc8b898),
         foregroundColor: const Color(0xFF333333),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: '罗盘记录',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const CompassRecordsPage()),
-              );
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (v) {
+              switch (v) {
+                case 'new_project':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const NewMeasurementProjectPage()),
+                  );
+                  break;
+                case 'projects':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const MeasurementProjectsPage()),
+                  );
+                  break;
+                case 'records':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const CompassRecordsPage()),
+                  );
+                  break;
+              }
             },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                  value: 'new_project',
+                  child: ListTile(
+                      leading: Icon(Icons.add_location_alt),
+                      title: Text('新建项目'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero)),
+              PopupMenuItem(
+                  value: 'projects',
+                  child: ListTile(
+                      leading: Icon(Icons.folder_outlined),
+                      title: Text('项目列表'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero)),
+              PopupMenuItem(
+                  value: 'records',
+                  child: ListTile(
+                      leading: Icon(Icons.history),
+                      title: Text('历史记录'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero)),
+            ],
           ),
         ],
       ),
       body: SafeArea(
         child: Column(
           children: [
+            if (widget.isProjectMode) _buildProjectBar(),
             _buildTopPanel(
                 displayReading, reading, discRotationDeg, status),
             // ---- Luopan disc with bubble overlay ----
@@ -765,6 +1257,43 @@ class _CompassPageState extends State<CompassPage> {
     }
     return (text: text, color: color);
   }
+
+  // ======== PROJECT BAR ========
+
+  Widget _buildProjectBar() {
+    final project = widget.activeProject!;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF5A4724),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.location_on, size: 16, color: Colors.white70),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              project.name,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            '测点 ${_pointCount}',
+            style: const TextStyle(
+                color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int get _pointCount => _savedPointCount;
 
   // ======== TOP PANEL ========
 
@@ -982,13 +1511,17 @@ class _CompassPageState extends State<CompassPage> {
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () =>
-                        _showSaveSheet(
+                    onPressed: () => widget.isProjectMode
+                        ? _showSavePointSheet(
+                            _lockedReading ?? reading,
+                            _lockedStatusText ?? status.text)
+                        : _showSaveSheet(
                             _lockedReading ?? reading,
                             _lockedStatusText ?? status.text),
                     icon: const Icon(Icons.save_alt, size: 16),
-                    label: const Text('保存罗盘',
-                        style: TextStyle(fontSize: 13)),
+                    label: Text(
+                        widget.isProjectMode ? '保存测点' : '保存罗盘',
+                        style: const TextStyle(fontSize: 13)),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF5A4724),
                       foregroundColor: Colors.white,
@@ -1013,6 +1546,24 @@ class _CompassPageState extends State<CompassPage> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24)),
+                ),
+              ),
+            ),
+          ],
+          // ---- Finish measurement (project mode only) ----
+          if (widget.isProjectMode) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _finishMeasurement,
+                icon: const Icon(Icons.check_circle_outline, size: 16),
+                label: const Text('完成测量',
+                    style: TextStyle(fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF5A4724),
+                  side: const BorderSide(color: Color(0xFF5A4724)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
             ),

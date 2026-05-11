@@ -76,6 +76,15 @@ class _CompassPageState extends State<CompassPage> {
     _loadSettings();
     _startSensor();
     _startTilt();
+    _loadProjectPointCount();
+  }
+
+  Future<void> _loadProjectPointCount() async {
+    final project = widget.activeProject;
+    if (project == null) return;
+    final points = await _settings.loadRecordsByProject(project.id);
+    if (!mounted) return;
+    setState(() => _savedPointCount = points.length);
   }
 
   @override
@@ -647,7 +656,7 @@ class _CompassPageState extends State<CompassPage> {
     final spaceNameCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    String measureType = MeasureTypes.door;
+    String measureType = MeasureTypes.other;
 
     final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
     final starElement = starMeta?.element ?? '';
@@ -1044,12 +1053,14 @@ class _CompassPageState extends State<CompassPage> {
   // ---- Finish measurement ----
 
   void _finishMeasurement() {
+    final hasPoints = _savedPointCount > 0;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('完成测量'),
-        content: Text(
-            '已完成本次测量，共保存 $_savedPointCount 个测点。可在项目详情中查看。'),
+        content: Text(hasPoints
+            ? '已完成本次测量，共保存 $_savedPointCount 个测点。可在项目详情中查看。'
+            : '当前还没有保存测点，是否退出本次测量？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

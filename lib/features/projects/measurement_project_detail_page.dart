@@ -226,6 +226,12 @@ class _MeasurementProjectDetailPageState
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.textPrimary)),
+                  if (point.spaceName != null &&
+                      point.spaceName!.isNotEmpty)
+                    Text(point.spaceName!,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textLabel)),
                   Text(
                     '${point.directionText} · ${point.sittingFacingText}',
                     style: const TextStyle(

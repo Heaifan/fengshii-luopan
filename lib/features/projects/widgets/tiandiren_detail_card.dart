@@ -40,7 +40,6 @@ class TiandirenDetailCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // title
           const Text(
             '当前选中测点',
             style: TextStyle(
@@ -50,8 +49,6 @@ class TiandirenDetailCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-
-          // type · name
           Text(
             '$typeLabel · $name',
             style: const TextStyle(
@@ -60,18 +57,24 @@ class TiandirenDetailCard extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
-
-          // palace · mountain (gua palace label)
+          const SizedBox(height: 6),
           Text(
-            '归位：$palaceLabel · ${mountainInfo.mountainLabel}',
+            '方向：${record.directionText}',
             style: const TextStyle(
-              color: AppTheme.textLabel,
+              color: AppTheme.textPrimary,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
           ),
-
+          const SizedBox(height: 2),
+          Text(
+            '归位：$palaceLabel · ${mountainInfo.mountainLabel}',
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 10),
           const Text(
             '注：测点为方位示意，不代表实际距离比例。',

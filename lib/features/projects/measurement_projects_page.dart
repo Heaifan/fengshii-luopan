@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../app/theme.dart';
 import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
+import '../../theme/app_svg_icons.dart';
+import '../../widgets/app_svg_icon.dart';
 import 'measurement_project_detail_page.dart';
 import 'new_measurement_project_page.dart';
 
@@ -157,19 +159,10 @@ class _MeasurementProjectsPageState
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFF5A4724),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              alignment: Alignment.center,
-              child: Text('${item.pointCount}',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold)),
+            const AppSvgIcon(
+              AppSvgIcons.home,
+              size: 28,
+              color: Color(0xFF4A3A12),
             ),
             const SizedBox(width: 12),
             Expanded(

@@ -3,6 +3,8 @@ import '../../app/theme.dart';
 import '../../data/models/compass_record.dart';
 import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
+import '../../theme/app_svg_icons.dart';
+import '../../widgets/app_svg_icon.dart';
 import '../compass/compass_page.dart';
 import 'widgets/tiandiren_plate.dart';
 import 'widgets/tiandiren_detail_card.dart';
@@ -52,7 +54,7 @@ class _SimpleProjectPlatePageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFD8D6CF),
+      backgroundColor: const Color(0xFFF3F4F1),
       appBar: AppBar(
         title: const Text('简易正盘'),
         centerTitle: true,
@@ -117,14 +119,10 @@ class _SimpleProjectPlatePageState
     final houseGua = _projectHouseGua;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
       children: [
         _buildProjectHeader(houseGua),
-        const SizedBox(height: 8),
-        _buildTiandirenSummary(),
-        const SizedBox(height: 12),
-
-        // plate
+        const SizedBox(height: 6),
         TiandirenPlate(
           records: _records,
           houseGua: houseGua,
@@ -133,10 +131,7 @@ class _SimpleProjectPlatePageState
             setState(() => _selectedRecord = record);
           },
         ),
-
         const SizedBox(height: 12),
-
-        // detail card
         if (_selectedRecord != null)
           TiandirenDetailCard(
             record: _selectedRecord!,
@@ -152,7 +147,7 @@ class _SimpleProjectPlatePageState
         : '未测';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
@@ -160,8 +155,12 @@ class _SimpleProjectPlatePageState
       ),
       child: Row(
         children: [
-          const Icon(Icons.home, color: AppTheme.textLabel),
-          const SizedBox(width: 10),
+          const AppSvgIcon(
+            AppSvgIcons.home,
+            size: 28,
+            color: Color(0xFF4A3A12),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +173,7 @@ class _SimpleProjectPlatePageState
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   '$houseGua｜$sittingFacing｜测点 ${_records.length}',
                   style: const TextStyle(
@@ -184,55 +183,6 @@ class _SimpleProjectPlatePageState
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTiandirenSummary() {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: AppTheme.cardBorder.withValues(alpha: 0.7)),
-      ),
-      child: Row(
-        children: const [
-          Expanded(
-            child: Text(
-              '山：元龙五行',
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              '宫：八宅游年',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              '点：测点用途',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
             ),
           ),
         ],

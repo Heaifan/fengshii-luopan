@@ -6,6 +6,8 @@ import '../../data/models/compass_record.dart';
 import '../../data/models/measure_type.dart';
 import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
+import '../../theme/app_svg_icons.dart';
+import '../../widgets/app_svg_icon.dart';
 import '../compass/compass_page.dart';
 import '../records/compass_record_detail_page.dart';
 import '../../fengshui/direction_sector.dart';
@@ -69,27 +71,38 @@ class _MeasurementProjectDetailPageState
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.cardBorder),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(widget.project.name,
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary)),
-                  const SizedBox(height: 6),
-                  if (widget.project.location != null &&
-                      widget.project.location!.isNotEmpty)
-                    Text(widget.project.location!,
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.textSecondary)),
-                  const SizedBox(height: 4),
-                  Text('已测 ${_points.length} 个点',
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textLabel)),
+                  const AppSvgIcon(
+                    AppSvgIcons.home,
+                    size: 28,
+                    color: Color(0xFF4A3A12),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.project.name,
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary)),
+                        const SizedBox(height: 4),
+                        if (widget.project.location != null &&
+                            widget.project.location!.isNotEmpty)
+                          Text(widget.project.location!,
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppTheme.textSecondary)),
+                        Text('已测 ${_points.length} 个点',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textLabel)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -264,7 +277,7 @@ class _MeasurementProjectDetailPageState
                         color: AppTheme.textTitle),
                   ),
                   Text(
-                    '归位：${DirectionSector.sectorGuaPalaceLabel(DirectionSector.sector8FromHeading(point.heading))} · ${DirectionSector.mountainLabelFromHeading(point.heading)}',
+                    '${point.directionText}｜${DirectionSector.sectorGuaPalaceLabel(DirectionSector.sector8FromHeading(point.heading))} · ${DirectionSector.mountainLabelFromHeading(point.heading)}',
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../fengshui/direction_sector.dart';
 import '../../../fengshui/mountain_24.dart';
-import '../../../fengshui/mountain_24_info.dart';
 import '../../../fengshui/bazhai_you_nian_table.dart';
 import '../../../fengshui/measure_type_meaning.dart';
 import '../../../fengshui/palace_element_theme.dart';
@@ -19,16 +18,17 @@ class TiandirenPlatePainter extends CustomPainter {
     this.selectedRecord,
   });
 
-  // ---- layout constants (fractions of radius R) ----
+  // ---- layout constants ----
   static const _ringOuter = 0.97;
   static const _ringInner = 0.82;
   static const _mountainTextR = 0.92;
   static const _gridHalfSide = 0.62;
 
+  // Correct grid: top=N, right=E, bottom=S, left=W
   static const _gridLayout = [
-    ['southEast', 'south', 'southWest'],
-    ['east', 'center', 'west'],
-    ['northEast', 'north', 'northWest'],
+    ['northWest', 'north', 'northEast'],
+    ['west', 'center', 'east'],
+    ['southWest', 'south', 'southEast'],
   ];
 
   static const _sectorToGua = {
@@ -53,7 +53,7 @@ class TiandirenPlatePainter extends CustomPainter {
     'northWest': '西北',
   };
 
-  static const _selectedGold = Color(0xFFB8862D);
+  static const _selectedGold = Color(0xFFC79A3B);
   static const _auspiciousColor = Color(0xFF2F6B3A);
   static const _inauspiciousColor = Color(0xFF8A2E21);
   static const _textPrimary = Color(0xFF20160D);
@@ -79,37 +79,32 @@ class TiandirenPlatePainter extends CustomPainter {
 
   void _drawBackground(Canvas canvas, Offset center, double R) {
     canvas.drawCircle(
-      center,
-      R,
+      center, R,
       Paint()..color = const Color(0xFFF8EED8),
     );
     canvas.drawCircle(
-      center,
-      R,
+      center, R,
       Paint()
-        ..color = const Color(0xFF9A7A3D).withValues(alpha: 0.3)
+        ..color = const Color(0xFFA88A52).withValues(alpha: 0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
   }
 
   // ============================================================
-  // Mountain ring (24 shan) - outer ring
+  // Mountain ring - single char
   // ============================================================
 
   void _drawMountainRing(Canvas canvas, Offset center, double R, double s) {
     final outerR = R * _ringOuter;
     final innerR = R * _ringInner;
 
-    // ring fill
     final ringPath = Path()
       ..addOval(Rect.fromCircle(center: center, radius: outerR))
       ..addOval(Rect.fromCircle(center: center, radius: innerR))
       ..fillType = PathFillType.evenOdd;
-    canvas.drawPath(
-        ringPath, Paint()..color = const Color(0xFFF0E8D5));
+    canvas.drawPath(ringPath, Paint()..color = const Color(0xFFF0E8D5));
 
-    // selected mountain
     String? selMountain;
     if (selectedRecord != null) {
       selMountain =
@@ -121,32 +116,24 @@ class TiandirenPlatePainter extends CustomPainter {
       final centerDeg = i * 15.0;
       final centerRad = (centerDeg - 90) * math.pi / 180;
 
-      // sector divider line at sector start
       final startDeg = centerDeg - 7.5;
       final startRad = (startDeg - 90) * math.pi / 180;
       canvas.drawLine(
-        center + Offset(math.cos(startRad) * innerR,
-            math.sin(startRad) * innerR),
-        center + Offset(math.cos(startRad) * outerR,
-            math.sin(startRad) * outerR),
+        center + Offset(math.cos(startRad) * innerR, math.sin(startRad) * innerR),
+        center + Offset(math.cos(startRad) * outerR, math.sin(startRad) * outerR),
         Paint()
           ..color = const Color(0xFF9A7A3D).withValues(alpha: 0.2)
           ..strokeWidth = 0.5,
       );
 
-      // mountain text: "子天水" format
-      final info = Mountain24InfoTable.fromMountain(mountain);
       final textPos = center +
           Offset(math.cos(centerRad) * R * _mountainTextR,
               math.sin(centerRad) * R * _mountainTextR);
 
       final isSelected = mountain == selMountain;
-      // draw mountain name as before
       _drawText(
-        canvas,
-        info.fullLabel,
-        textPos,
-        isSelected ? 11.0 * s : 10.0 * s,
+        canvas, mountain, textPos,
+        isSelected ? 13 * s : 12 * s,
         isSelected ? FontWeight.w800 : FontWeight.w500,
         isSelected ? _selectedGold : const Color(0xFF4F351F),
       );
@@ -154,18 +141,16 @@ class TiandirenPlatePainter extends CustomPainter {
   }
 
   // ============================================================
-  // 3×3 palace grid
+  // 3×3 palace grid (correct orientation)
   // ============================================================
 
   void _drawPalaceGrid(Canvas canvas, Offset center, double R, double s) {
     final halfSide = R * _gridHalfSide;
     final cellSize = 2 * halfSide / 3;
 
-    // which sector is selected
     String? selSector;
     if (selectedRecord != null) {
-      selSector = DirectionSector.sector8FromHeading(
-          selectedRecord!.heading);
+      selSector = DirectionSector.sector8FromHeading(selectedRecord!.heading);
     }
 
     for (int row = 0; row < 3; row++) {
@@ -173,21 +158,14 @@ class TiandirenPlatePainter extends CustomPainter {
         final sector = _gridLayout[row][col];
         final left = center.dx - halfSide + col * cellSize;
         final top = center.dy - halfSide + row * cellSize;
-        final cellRect =
-            Rect.fromLTWH(left, top, cellSize, cellSize);
+        final cellRect = Rect.fromLTWH(left, top, cellSize, cellSize);
 
-        final isSelected =
-            selSector != null && sector == selSector;
+        final isSelected = selSector != null && sector == selSector;
 
         // cell background by element
         final element = PalaceElementTheme.elementForSector(sector);
-        final fillColor = PalaceElementTheme.colorForElement(element);
-        canvas.drawRect(
-          cellRect,
-          Paint()..color = fillColor,
-        );
+        canvas.drawRect(cellRect, Paint()..color = PalaceElementTheme.colorForElement(element));
 
-        // gold border for selected cell
         if (isSelected) {
           canvas.drawRect(
             cellRect,
@@ -204,46 +182,32 @@ class TiandirenPlatePainter extends CustomPainter {
         } else {
           final label = _sectorLabel[sector]!;
           final gua = _sectorToGua[sector]!;
-          final star = getBazhaiStar(
-              houseGua: houseGua, palaceGua: gua);
+          final star = getBazhaiStar(houseGua: houseGua, palaceGua: gua);
           final meta = bazhaiStarMetaMap[star];
           final isGood = meta?.isGood ?? false;
-          final rank =
-              getBazhaiStarRank(houseGua: houseGua, starName: star);
-          final starFull =
-              '$star${meta?.element ?? ''}（$rank）';
+          final rank = getBazhaiStarRank(houseGua: houseGua, starName: star);
+          final starLine = star.isNotEmpty ? '$star / $rank' : '';
 
-          // direction name
+          // direction name (top of cell)
           _drawCenteredText(
-            canvas,
-            label,
-            Offset(cellRect.center.dx,
-                cellRect.center.dy - cellSize * 0.18),
-            14 * s,
-            FontWeight.w800,
-            _textPrimary,
+            canvas, label,
+            Offset(cellRect.center.dx, cellRect.center.dy - cellSize * 0.20),
+            14 * s, FontWeight.w800, _textPrimary,
           );
 
-          // gua name smaller
+          // gua (middle)
           _drawCenteredText(
-            canvas,
-            gua,
-            Offset(cellRect.center.dx,
-                cellRect.center.dy - cellSize * 0.02),
-            11 * s,
-            FontWeight.w500,
-            const Color(0xFF5F4630),
+            canvas, gua,
+            Offset(cellRect.center.dx, cellRect.center.dy - cellSize * 0.02),
+            10 * s, FontWeight.w500, const Color(0xFF5F4630),
           );
 
-          // bazhai star full label
-          if (star.isNotEmpty) {
+          // star / rank (bottom)
+          if (starLine.isNotEmpty) {
             _drawCenteredText(
-              canvas,
-              starFull,
-              Offset(cellRect.center.dx,
-                  cellRect.center.dy + cellSize * 0.18),
-              10 * s,
-              FontWeight.w700,
+              canvas, starLine,
+              Offset(cellRect.center.dx, cellRect.center.dy + cellSize * 0.18),
+              10 * s, FontWeight.w700,
               isGood ? _auspiciousColor : _inauspiciousColor,
             );
           }
@@ -253,29 +217,19 @@ class TiandirenPlatePainter extends CustomPainter {
 
     // grid lines
     final linePaint = Paint()
-      ..color = const Color(0xFF9A7A3D).withValues(alpha: 0.35)
+      ..color = const Color(0xFFA88A52).withValues(alpha: 0.3)
       ..strokeWidth = 1.0;
 
     for (int col = 1; col < 3; col++) {
       final x = center.dx - halfSide + col * cellSize;
-      canvas.drawLine(
-        Offset(x, center.dy - halfSide),
-        Offset(x, center.dy + halfSide),
-        linePaint,
-      );
+      canvas.drawLine(Offset(x, center.dy - halfSide), Offset(x, center.dy + halfSide), linePaint);
     }
     for (int row = 1; row < 3; row++) {
       final y = center.dy - halfSide + row * cellSize;
-      canvas.drawLine(
-        Offset(center.dx - halfSide, y),
-        Offset(center.dx + halfSide, y),
-        linePaint,
-      );
+      canvas.drawLine(Offset(center.dx - halfSide, y), Offset(center.dx + halfSide, y), linePaint);
     }
-    // outer border
     canvas.drawRect(
-      Rect.fromLTWH(
-          center.dx - halfSide, center.dy - halfSide, halfSide * 2, halfSide * 2),
+      Rect.fromLTWH(center.dx - halfSide, center.dy - halfSide, halfSide * 2, halfSide * 2),
       linePaint,
     );
   }
@@ -284,51 +238,27 @@ class TiandirenPlatePainter extends CustomPainter {
   // Point anchors
   // ============================================================
 
-  void _drawPointAnchors(
-      Canvas canvas, Offset center, double R, double s) {
+  void _drawPointAnchors(Canvas canvas, Offset center, double R, double s) {
     for (final record in records) {
       final isSelected = selectedRecord?.id == record.id;
       final pos = _pointPosition(record, center, R);
       final label = MeasureTypeMeaning.pointShortLabel(
-        type: record.measureType,
-        measureName: record.measureName,
+        type: record.measureType, measureName: record.measureName,
       );
 
       if (isSelected) {
-        // selection glow ring (gold)
-        canvas.drawCircle(
-          pos,
-          14 * s,
-          Paint()
-            ..color = _selectedGold.withValues(alpha: 0.5)
-            ..style = PaintingStyle.fill,
-        );
-        canvas.drawCircle(
-          pos,
-          14 * s,
-          Paint()
-            ..color = _selectedGold
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2,
-        );
+        canvas.drawCircle(pos, 14 * s, Paint()
+          ..color = _selectedGold.withValues(alpha: 0.5)
+          ..style = PaintingStyle.fill);
+        canvas.drawCircle(pos, 14 * s, Paint()
+          ..color = _selectedGold
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);
       }
 
-      // dot
-      canvas.drawCircle(
-        pos,
-        isSelected ? 10 * s : 8 * s,
-        Paint()..color = const Color(0xFF5A4724),
-      );
+      canvas.drawCircle(pos, isSelected ? 10 * s : 8 * s, Paint()..color = const Color(0xFF5A4724));
 
-      // short label
-      _drawCenteredText(
-        canvas,
-        label,
-        pos,
-        10 * s,
-        FontWeight.bold,
-        Colors.white,
-      );
+      _drawCenteredText(canvas, label, pos, 10 * s, FontWeight.bold, Colors.white);
     }
   }
 
@@ -338,33 +268,21 @@ class TiandirenPlatePainter extends CustomPainter {
 
   double _radiusFactor(String type) {
     switch (type) {
-      case 'door':
-        return 0.48;
-      case 'balcony':
-        return 0.44;
-      case 'window':
-        return 0.40;
-      case 'stove':
-        return 0.36;
-      case 'bed':
-        return 0.30;
-      case 'desk':
-        return 0.26;
-      case 'altar':
-        return 0.32;
-      default:
-        return 0.36;
+      case 'door': return 0.48;
+      case 'balcony': return 0.44;
+      case 'window': return 0.40;
+      case 'stove': return 0.36;
+      case 'bed': return 0.30;
+      case 'desk': return 0.26;
+      case 'altar': return 0.32;
+      default: return 0.36;
     }
   }
 
-  Offset _pointPosition(
-      CompassRecord record, Offset center, double R) {
+  Offset _pointPosition(CompassRecord record, Offset center, double R) {
     final rad = (record.heading - 90) * math.pi / 180;
     final r = R * _radiusFactor(record.measureType);
-    return Offset(
-      center.dx + math.cos(rad) * r,
-      center.dy + math.sin(rad) * r,
-    );
+    return Offset(center.dx + math.cos(rad) * r, center.dy + math.sin(rad) * r);
   }
 
   void _drawText(Canvas canvas, String text, Offset pos, double size,
@@ -372,43 +290,29 @@ class TiandirenPlatePainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(
-            color: color,
-            fontSize: size,
-            fontWeight: weight,
-            fontFamily: 'serif'),
+        style: TextStyle(color: color, fontSize: size, fontWeight: weight, fontFamily: 'serif'),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    tp.paint(
-        canvas, pos - Offset(tp.width / 2, tp.height / 2));
+    tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
   }
 
-  void _drawCenteredText(
-      Canvas canvas, String text, Offset center, double size,
+  void _drawCenteredText(Canvas canvas, String text, Offset center, double size,
       FontWeight weight, Color color) {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(
-            color: color,
-            fontSize: size,
-            fontWeight: weight,
-            fontFamily: 'serif'),
+        style: TextStyle(color: color, fontSize: size, fontWeight: weight, fontFamily: 'serif'),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    tp.paint(
-        canvas, center - Offset(tp.width / 2, tp.height / 2));
+    tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
   }
 
-  /// Returns the screen positions of anchors for hit-testing.
   List<MapEntry<CompassRecord, Offset>> anchorPositions(
       Size size, List<CompassRecord> records) {
     final center = Offset(size.width / 2, size.height / 2);
     final R = math.min(size.width, size.height) / 2;
-    return records
-        .map((r) => MapEntry(r, _pointPosition(r, center, R)))
-        .toList();
+    return records.map((r) => MapEntry(r, _pointPosition(r, center, R))).toList();
   }
 }

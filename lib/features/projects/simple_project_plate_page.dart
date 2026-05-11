@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import '../../data/models/compass_record.dart';
@@ -71,25 +72,106 @@ class _SimpleProjectPlatePageState
     return '未测';
   }
 
-  Future<void> _exportPlatePng() async {
+  Future<void> _showExportOptions() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(
+                    Icons.photo_library_outlined),
+                title: const Text('保存到相册'),
+                subtitle: const Text('导出正盘图片到手机相册'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _savePlateToGallery();
+                },
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: const Icon(Icons.ios_share_rounded),
+                title: const Text('分享图片'),
+                subtitle: const Text('通过微信、邮件等方式分享'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _sharePlateImage();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Uint8List?> _captureExportBytes() async {
+    try {
+      // Wait for the offscreen widget to render
+      await Future.delayed(const Duration(milliseconds: 200));
+      return await ProjectPlateExportService.captureBytes(
+          repaintKey: _exportKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _savePlateToGallery() async {
     setState(() => _exporting = true);
     try {
-      // Trigger a frame to render the offstage export card
-      await Future.delayed(const Duration(milliseconds: 200));
-
+      final bytes = await _captureExportBytes();
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('导出失败，请重试')),
+          );
+        }
+        return;
+      }
       final name =
           '风水荷盘_${widget.project.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}_${DateTime.now().millisecondsSinceEpoch}';
-      final success = await ProjectPlateExportService.captureAndShare(
-        repaintKey: _exportKey,
-        fileName: name,
-      );
-
+      final success = await ProjectPlateExportService.saveToGallery(
+          bytes, fileName: name);
       if (!mounted) return;
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('正盘图片已生成，可通过分享保存到相册')),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? '正盘图片已保存到相册'
+              : '保存失败，请检查相册权限'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Future<void> _sharePlateImage() async {
+    setState(() => _exporting = true);
+    try {
+      final bytes = await _captureExportBytes();
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('导出失败，请重试')),
+          );
+        }
+        return;
       }
+      final name =
+          '风水荷盘_${widget.project.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}_${DateTime.now().millisecondsSinceEpoch}';
+      await ProjectPlateExportService.shareImage(
+          bytes, fileName: name);
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -222,7 +304,7 @@ class _SimpleProjectPlatePageState
                           strokeWidth: 2, color: Color(0xFF333333)))
                   : const Icon(Icons.download_rounded),
               tooltip: '导出图片',
-              onPressed: _exporting ? null : _exportPlatePng,
+              onPressed: _exporting ? null : _showExportOptions,
             ),
         ],
       ),

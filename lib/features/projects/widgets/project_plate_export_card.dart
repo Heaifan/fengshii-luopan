@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../data/models/measurement_project.dart';
 import '../../../data/models/measure_type.dart';
-import '../../../theme/app_svg_icons.dart';
-import '../../../widgets/app_svg_icon.dart';
 import '../../../fengshui/direction_sector.dart';
 import '../painters/tiandiren_plate_painter.dart';
 import '../utils/plate_record_sorter.dart';
@@ -40,11 +38,15 @@ class ProjectPlateExportCard extends StatelessWidget {
           const SizedBox(height: 36),
           _buildSummary(sorted),
           const SizedBox(height: 44),
-          _buildWatermark(),
+          _buildSealWatermark(),
         ],
       ),
     );
   }
+
+  // ==========================================
+  // Header
+  // ==========================================
 
   Widget _buildHeader() {
     final now = DateTime.now();
@@ -54,9 +56,9 @@ class ProjectPlateExportCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           '风水荷盘 · 简易正盘',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 48,
             fontWeight: FontWeight.w800,
             color: Color(0xFF1C1208),
@@ -84,23 +86,42 @@ class ProjectPlateExportCard extends StatelessWidget {
     );
   }
 
+  // ==========================================
+  // Plate
+  // ==========================================
+
   Widget _buildPlate(double totalWidth) {
-    final plateSize = totalWidth - 96; // 984
+    final plateSize = totalWidth - 96;
     return Center(
-      child: SizedBox(
-        width: plateSize,
-        height: plateSize,
-        child: CustomPaint(
-          painter: TiandirenPlatePainter(
-            records: records,
-            houseGua: houseGua,
-            selectedRecord: null,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBF0),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: const Color(0xFFE0C999),
+            width: 1,
           ),
-          size: Size(plateSize, plateSize),
+        ),
+        child: SizedBox(
+          width: plateSize,
+          height: plateSize,
+          child: CustomPaint(
+            painter: TiandirenPlatePainter(
+              records: records,
+              houseGua: houseGua,
+              selectedRecord: null,
+            ),
+            size: Size(plateSize, plateSize),
+          ),
         ),
       ),
     );
   }
+
+  // ==========================================
+  // Summary
+  // ==========================================
 
   Widget _buildSummary(List<CompassRecord> sorted) {
     return Column(
@@ -162,8 +183,7 @@ class ProjectPlateExportCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         '$typeLabel · $name',
@@ -202,11 +222,14 @@ class ProjectPlateExportCard extends StatelessWidget {
     );
   }
 
-  Widget _buildWatermark() {
+  // ==========================================
+  // Seal-style watermark (朱砂印章风)
+  // ==========================================
+
+  Widget _buildSealWatermark() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-          horizontal: 28, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBF0),
         borderRadius: BorderRadius.circular(22),
@@ -217,10 +240,28 @@ class ProjectPlateExportCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const AppSvgIcon(
-            AppSvgIcons.home,
-            size: 56,
-            color: Color(0xFF4A3A12),
+          // Seal-style app icon
+          Container(
+            width: 64,
+            height: 64,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: const Color(0xFFC83A2E),
+                width: 2,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/icon/app_icon.jpg',
+                width: 52,
+                height: 52,
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(

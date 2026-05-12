@@ -10,10 +10,15 @@ import '../../theme/app_svg_icons.dart';
 import '../../widgets/app_svg_icon.dart';
 import '../../fengshui/direction_sector.dart';
 import '../../fengshui/bazhai_base_resolver.dart';
+import '../../fengshui/bazhai_you_nian_table.dart';
+import '../../fengshui/compass_math.dart';
+import '../../fengshui/compass_reading_builder.dart';
 import '../compass/compass_page.dart';
 import '../records/compass_record_detail_page.dart';
 import 'simple_project_plate_page.dart';
 import 'tiandiren_vent_page.dart';
+import 'edit_project_page.dart';
+import 'widgets/measure_point_form_sheet.dart';
 
 class MeasurementProjectDetailPage extends StatefulWidget {
   final MeasurementProject project;
@@ -32,20 +37,26 @@ class _MeasurementProjectDetailPageState
     extends State<MeasurementProjectDetailPage> {
   final _storage = SettingsStorage();
   List<CompassRecord> _points = [];
+  MeasurementProject? _project;
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
+    _project = widget.project;
     _loadPoints();
   }
 
   Future<void> _loadPoints() async {
     final points =
-        await _storage.loadRecordsByProject(widget.project.id);
+        await _storage.loadRecordsByProject(_project!.id);
+    final projects = await _storage.loadProjects();
+    final updated =
+        projects.where((p) => p.id == _project!.id).firstOrNull;
     if (!mounted) return;
     setState(() {
       _points = points;
+      _project = updated ?? _project!;
       _loading = false;
     });
   }
@@ -85,21 +96,21 @@ class _MeasurementProjectDetailPageState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.project.name,
+                        Text(_project!.name,
                             style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.textPrimary)),
                         const SizedBox(height: 4),
-                        if (widget.project.location != null &&
-                            widget.project.location!.isNotEmpty)
-                          Text(widget.project.location!,
+                        if (_project!.location != null &&
+                            _project!.location!.isNotEmpty)
+                          Text(_project!.location!,
                               style: const TextStyle(
                                   fontSize: 14,
                                   color: AppTheme.textSecondary)),
                         Text(
                           BaZhaiBaseResolver.summaryText(
-                            project: widget.project,
+                            project: _project!,
                             records: _points,
                           ),
                           style: const TextStyle(
@@ -112,6 +123,26 @@ class _MeasurementProjectDetailPageState
                                 fontWeight: FontWeight.w600,
                                 color: AppTheme.textLabel)),
                       ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      final edited = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditProjectPage(
+                              project: _project!),
+                        ),
+                      );
+                      if (edited == true) {
+                        await _loadPoints();
+                        if (mounted) setState(() {});
+                      }
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.edit_outlined,
+                          size: 20, color: AppTheme.textHint),
                     ),
                   ),
                 ],
@@ -129,7 +160,7 @@ class _MeasurementProjectDetailPageState
                         context,
                         MaterialPageRoute(
                           builder: (_) => CompassPage(
-                              activeProject: widget.project),
+                              activeProject: _project!),
                         ),
                       );
                     },
@@ -153,7 +184,7 @@ class _MeasurementProjectDetailPageState
                         context,
                         MaterialPageRoute(
                           builder: (_) => SimpleProjectPlatePage(
-                              project: widget.project),
+                              project: _project!),
                         ),
                       );
                     },
@@ -176,7 +207,7 @@ class _MeasurementProjectDetailPageState
                         context,
                         MaterialPageRoute(
                           builder: (_) => TiandirenVentPage(
-                              project: widget.project),
+                              project: _project!),
                         ),
                       );
                     },
@@ -259,6 +290,7 @@ class _MeasurementProjectDetailPageState
           ),
         );
       },
+      onLongPress: () => _onEditPoint(point),
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 8),
@@ -335,6 +367,69 @@ class _MeasurementProjectDetailPageState
           ],
         ),
       ),
+    );
+  }
+
+  String get _projectBaseGua {
+    final base = BaZhaiBaseResolver.resolveBasePalace(
+      project: _project!,
+      records: _points,
+    );
+    return base ?? '乾';
+  }
+
+  Future<void> _onEditPoint(CompassRecord point) async {
+    final result = await showMeasurePointFormSheet(
+      context: context,
+      initialRecord: point,
+      houseGua: _projectBaseGua,
+      allowDelete: true,
+    );
+    if (result == null || !mounted) return;
+
+    if (result.delete) {
+      await _storage.deleteRecord(point.id);
+    } else {
+      final heading = result.heading ?? point.heading;
+      final reading = CompassReadingBuilder.build(
+        degree: heading,
+        houseGua: _projectBaseGua,
+      );
+      final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
+      final starElement = starMeta?.element ?? '';
+      final bazhaiText = '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
+      final directionText = '${compassDirectionName(heading)}${heading.toStringAsFixed(0)}°';
+
+      final updated = CompassRecord(
+        id: point.id,
+        name: point.name,
+        location: point.location,
+        note: result.note,
+        createdAt: point.createdAt,
+        heading: heading,
+        directionText: directionText,
+        sittingFacingText: reading.sittingFacingText,
+        sittingMountain: reading.sittingMountain,
+        facingMountain: reading.facingMountain,
+        palace: '${reading.facingGua}宫',
+        mountainText: reading.fullSanyuanText,
+        bazhaiText: bazhaiText,
+        statusText: point.statusText,
+        horizontalAngle: point.horizontalAngle,
+        verticalAngle: point.verticalAngle,
+        houseGua: _projectBaseGua,
+        projectId: point.projectId,
+        measureType: result.measureType,
+        measureName: result.measureName,
+        spaceName: result.spaceName,
+      );
+      await _storage.updateRecord(updated);
+    }
+
+    await _loadPoints();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.delete ? '已删除测点' : '测点已更新')),
     );
   }
 }

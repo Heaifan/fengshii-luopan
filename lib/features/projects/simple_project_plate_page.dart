@@ -8,6 +8,9 @@ import '../../theme/app_svg_icons.dart';
 import '../../widgets/app_svg_icon.dart';
 import '../../fengshui/direction_sector.dart';
 import '../../fengshui/bazhai_base_resolver.dart';
+import '../../fengshui/bazhai_you_nian_table.dart';
+import '../../fengshui/compass_math.dart';
+import '../../fengshui/compass_reading_builder.dart';
 import '../compass/compass_page.dart';
 import 'widgets/tiandiren_plate.dart';
 import 'widgets/tiandiren_detail_card.dart';
@@ -318,6 +321,7 @@ class _SimpleProjectPlatePageState
     final result = await showMeasurePointFormSheet(
       context: context,
       initialRecord: record,
+      houseGua: _projectBasePalace,
       allowDelete: true,
     );
 
@@ -326,11 +330,38 @@ class _SimpleProjectPlatePageState
     if (result.delete) {
       await _storage.deleteRecord(record.id);
     } else {
-      final updated = record.copyWith(
+      final heading = result.heading ?? record.heading;
+      final reading = CompassReadingBuilder.build(
+        degree: heading,
+        houseGua: _projectBasePalace,
+      );
+      final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
+      final starElement = starMeta?.element ?? '';
+      final bazhaiText = '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
+      final directionText = '${compassDirectionName(heading)}${heading.toStringAsFixed(0)}°';
+
+      final updated = CompassRecord(
+        id: record.id,
+        name: record.name,
+        location: record.location,
+        note: result.note,
+        createdAt: record.createdAt,
+        heading: heading,
+        directionText: directionText,
+        sittingFacingText: reading.sittingFacingText,
+        sittingMountain: reading.sittingMountain,
+        facingMountain: reading.facingMountain,
+        palace: '${reading.facingGua}宫',
+        mountainText: reading.fullSanyuanText,
+        bazhaiText: bazhaiText,
+        statusText: record.statusText,
+        horizontalAngle: record.horizontalAngle,
+        verticalAngle: record.verticalAngle,
+        houseGua: _projectBasePalace,
+        projectId: record.projectId,
         measureType: result.measureType,
         measureName: result.measureName,
         spaceName: result.spaceName,
-        note: result.note,
       );
       await _storage.updateRecord(updated);
     }

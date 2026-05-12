@@ -124,6 +124,14 @@ class SettingsStorage {
     await saveProjects(projects);
   }
 
+  Future<void> updateProject(MeasurementProject updated) async {
+    final projects = await loadProjects();
+    final index = projects.indexWhere((p) => p.id == updated.id);
+    if (index == -1) return;
+    projects[index] = updated;
+    await saveProjects(projects);
+  }
+
   Future<void> deleteProject(String id) async {
     final projects = await loadProjects();
     projects.removeWhere((p) => p.id == id);

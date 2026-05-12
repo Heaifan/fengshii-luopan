@@ -1371,8 +1371,8 @@ class _CompassPageState extends State<CompassPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('宅卦：',
-              style: TextStyle(
+          Text(widget.isProjectMode ? '八宅：' : '宅卦：',
+              style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textSecondary)),

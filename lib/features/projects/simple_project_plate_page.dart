@@ -7,6 +7,7 @@ import '../../data/storage/settings_storage.dart';
 import '../../theme/app_svg_icons.dart';
 import '../../widgets/app_svg_icon.dart';
 import '../../fengshui/direction_sector.dart';
+import '../../fengshui/bazhai_base_resolver.dart';
 import '../compass/compass_page.dart';
 import 'widgets/tiandiren_plate.dart';
 import 'widgets/tiandiren_detail_card.dart';
@@ -62,9 +63,12 @@ class _SimpleProjectPlatePageState
     });
   }
 
-  String get _projectHouseGua {
-    if (_records.isNotEmpty) return _records.first.houseGua;
-    return '乾宅';
+  String get _projectBasePalace {
+    final base = BaZhaiBaseResolver.resolveBasePalace(
+      project: widget.project,
+      records: _records,
+    );
+    return base ?? '乾';
   }
 
   String get _projectSittingFacing {
@@ -406,7 +410,7 @@ class _SimpleProjectPlatePageState
                 child: ProjectPlateExportCard(
                   project: widget.project,
                   records: _records,
-                  houseGua: _projectHouseGua,
+                  houseGua: _projectBasePalace,
                   sittingFacing: _projectSittingFacing,
                 ),
               ),
@@ -468,7 +472,7 @@ class _SimpleProjectPlatePageState
   }
 
   Widget _buildContent() {
-    final houseGua = _projectHouseGua;
+    final houseGua = _projectBasePalace;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
@@ -529,6 +533,10 @@ class _SimpleProjectPlatePageState
     final sittingFacing = _records.isNotEmpty
         ? _records.first.sittingFacingText
         : '未测';
+    final baZhaiSummary = BaZhaiBaseResolver.summaryText(
+      project: widget.project,
+      records: _records,
+    );
 
     return Container(
       padding:
@@ -560,7 +568,7 @@ class _SimpleProjectPlatePageState
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$houseGua｜$sittingFacing｜测点 ${_records.length}个',
+                  '$baZhaiSummary｜$sittingFacing｜测点 ${_records.length}个',
                   style: const TextStyle(
                     color: AppTheme.textSecondary,
                     fontSize: 13,

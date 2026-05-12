@@ -3,6 +3,7 @@ import '../../../data/models/compass_record.dart';
 import '../../../data/models/measurement_project.dart';
 import '../../../data/models/measure_type.dart';
 import '../../../fengshui/direction_sector.dart';
+import '../../../fengshui/bazhai_base_resolver.dart';
 import '../painters/tiandiren_plate_painter.dart';
 import '../utils/plate_record_sorter.dart';
 
@@ -67,7 +68,7 @@ class ProjectPlateExportCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '项目：${project.name}｜$houseGua｜$sittingFacing｜测点 ${records.length}个',
+          '${BaZhaiBaseResolver.summaryText(project: project, records: records)}｜$sittingFacing｜测点 ${records.length}个',
           style: const TextStyle(
             fontSize: 28,
             color: Color(0xFF5F4630),
@@ -278,7 +279,7 @@ class ProjectPlateExportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '项目：${project.name}｜$houseGua｜测点 ${records.length}个',
+                  '${BaZhaiBaseResolver.summaryText(project: project, records: records)}｜测点 ${records.length}个',
                   style: const TextStyle(
                     fontSize: 22,
                     color: Color(0xFF5F4630),

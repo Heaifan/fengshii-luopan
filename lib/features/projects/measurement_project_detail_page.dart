@@ -8,9 +8,10 @@ import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
 import '../../theme/app_svg_icons.dart';
 import '../../widgets/app_svg_icon.dart';
+import '../../fengshui/direction_sector.dart';
+import '../../fengshui/bazhai_base_resolver.dart';
 import '../compass/compass_page.dart';
 import '../records/compass_record_detail_page.dart';
-import '../../fengshui/direction_sector.dart';
 import 'simple_project_plate_page.dart';
 
 class MeasurementProjectDetailPage extends StatefulWidget {
@@ -95,6 +96,15 @@ class _MeasurementProjectDetailPageState
                               style: const TextStyle(
                                   fontSize: 14,
                                   color: AppTheme.textSecondary)),
+                        Text(
+                          BaZhaiBaseResolver.summaryText(
+                            project: widget.project,
+                            records: _points,
+                          ),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textLabel)),
                         Text('已测 ${_points.length} 个点',
                             style: const TextStyle(
                                 fontSize: 13,

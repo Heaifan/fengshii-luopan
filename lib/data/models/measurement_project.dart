@@ -8,6 +8,8 @@ class MeasurementProject {
   final String? note;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String baZhaiMode; // 'wholeHouse' | 'doorPosition'
+  final String? basePalace; // e.g. '乾', null = auto-derive
 
   const MeasurementProject({
     required this.id,
@@ -17,6 +19,8 @@ class MeasurementProject {
     this.note,
     required this.createdAt,
     required this.updatedAt,
+    this.baZhaiMode = 'wholeHouse',
+    this.basePalace,
   });
 
   factory MeasurementProject.create({
@@ -24,6 +28,8 @@ class MeasurementProject {
     String type = 'other',
     String? location,
     String? note,
+    String baZhaiMode = 'wholeHouse',
+    String? basePalace,
   }) {
     final now = DateTime.now();
     return MeasurementProject(
@@ -34,6 +40,8 @@ class MeasurementProject {
       note: note,
       createdAt: now,
       updatedAt: now,
+      baZhaiMode: baZhaiMode,
+      basePalace: basePalace,
     );
   }
 
@@ -45,6 +53,8 @@ class MeasurementProject {
         'note': note,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
+        'baZhaiMode': baZhaiMode,
+        'basePalace': basePalace,
       };
 
   factory MeasurementProject.fromJson(Map<String, dynamic> json) {
@@ -56,6 +66,8 @@ class MeasurementProject {
       note: json['note'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      baZhaiMode: json['baZhaiMode'] as String? ?? 'wholeHouse',
+      basePalace: json['basePalace'] as String?,
     );
   }
 }

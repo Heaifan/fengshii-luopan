@@ -7,6 +7,8 @@ import '../../data/storage/settings_storage.dart';
 import '../compass/compass_page.dart';
 
 const _projectTypes = ['residential', 'shop', 'office', 'other'];
+const _baZhaiModes = ['wholeHouse', 'doorPosition'];
+const _guas = ['乾', '兑', '艮', '坤', '坎', '震', '巽', '离'];
 
 String _typeLabel(String type) {
   switch (type) {
@@ -19,6 +21,10 @@ String _typeLabel(String type) {
     default:
       return '其他';
   }
+}
+
+String _baZhaiModeLabel(String mode) {
+  return mode == 'doorPosition' ? '门位起伏位' : '整宅宅卦';
 }
 
 class NewMeasurementProjectPage extends StatefulWidget {
@@ -36,7 +42,20 @@ class _NewMeasurementProjectPageState
   final _noteCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String _type = 'residential';
+  String _baZhaiMode = 'wholeHouse';
+  String _baseGua = '乾';
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDefaultGua();
+  }
+
+  Future<void> _loadDefaultGua() async {
+    final gua = await SettingsStorage().loadHouseGua();
+    if (mounted) setState(() => _baseGua = gua);
+  }
 
   @override
   void dispose() {
@@ -59,6 +78,8 @@ class _NewMeasurementProjectPageState
           : _locationCtrl.text.trim(),
       note:
           _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      baZhaiMode: _baZhaiMode,
+      basePalace: _baZhaiMode == 'wholeHouse' ? _baseGua : null,
     );
 
     await SettingsStorage().addProject(project);
@@ -156,6 +177,93 @@ class _NewMeasurementProjectPageState
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+
+              // ---- Ba Zhai mode ----
+              const Text('八宅起法',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textLabel)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                children: _baZhaiModes.map((m) {
+                  final selected = m == _baZhaiMode;
+                  return ChoiceChip(
+                    label: Text(_baZhaiModeLabel(m),
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: selected
+                                ? Colors.white
+                                : AppTheme.textPrimary)),
+                    selected: selected,
+                    selectedColor: const Color(0xFF5A4724),
+                    backgroundColor: const Color(0xFFF0E8D5),
+                    side: BorderSide(
+                        color: selected
+                            ? const Color(0xFF5A4724)
+                            : AppTheme.cardBorder),
+                    onSelected: (_) =>
+                        setState(() => _baZhaiMode = m),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 14),
+
+              // ---- Base palace (for wholeHouse mode) ----
+              if (_baZhaiMode == 'wholeHouse') ...[
+                const Text('宅卦',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textLabel)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: _guas.map((g) {
+                    final selected = g == _baseGua;
+                    return ChoiceChip(
+                      label: Text('${g}宅',
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: selected
+                                  ? Colors.white
+                                  : AppTheme.textPrimary)),
+                      selected: selected,
+                      selectedColor:
+                          const Color(0xFF5A4724),
+                      backgroundColor:
+                          const Color(0xFFF0E8D5),
+                      side: BorderSide(
+                          color: selected
+                              ? const Color(0xFF5A4724)
+                              : AppTheme.cardBorder),
+                      onSelected: (_) =>
+                          setState(() => _baseGua = g),
+                    );
+                  }).toList(),
+                ),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8ED),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: AppTheme.cardBorder),
+                  ),
+                  child: const Text(
+                    '系统将根据项目中的"门"测点所在宫位确定伏位。\n请先测量门位。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               // ---- Location ----

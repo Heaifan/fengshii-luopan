@@ -92,8 +92,6 @@ class _TiandirenVentPageState extends State<TiandirenVentPage> {
           TiandirenVentWidget(records: _records),
           const SizedBox(height: 12),
           _buildPointList(),
-          const SizedBox(height: 12),
-          _buildLegend(),
           const SizedBox(height: 10),
           _buildNote(),
         ] else ...[
@@ -328,50 +326,6 @@ class _TiandirenVentPageState extends State<TiandirenVentPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLegend() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: AppTheme.cardBorder.withValues(alpha: 0.7)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _legendDot('天元龙', const Color(0xFF3B8C6E)),
-          const SizedBox(width: 20),
-          _legendDot('地元龙', const Color(0xFF9A5A3A)),
-          const SizedBox(width: 20),
-          _legendDot('人元龙', const Color(0xFFC8922E)),
-        ],
-      ),
-    );
-  }
-
-  Widget _legendDot(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary)),
-      ],
     );
   }
 

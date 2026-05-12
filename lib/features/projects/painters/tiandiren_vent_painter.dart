@@ -2,31 +2,50 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../fengshui/mountain_24.dart';
+import '../../../fengshui/mountain_24_info.dart';
 import '../../../fengshui/measure_type_meaning.dart';
 
-/// Maps each of the 24 mountains to an (innerRow, innerCol) in a 7x7 inner grid.
-const _mountainGridPos = <String, ({int r, int c})>{
-  '巽': (r: 1, c: 2), '巳': (r: 1, c: 3),
-  '丙': (r: 1, c: 4), '午': (r: 1, c: 5), '丁': (r: 1, c: 6),
-  '癸': (r: 7, c: 2), '子': (r: 7, c: 3),
-  '壬': (r: 7, c: 4), '亥': (r: 7, c: 5), '乾': (r: 7, c: 6),
-  '乙': (r: 2, c: 1), '卯': (r: 3, c: 1),
-  '甲': (r: 4, c: 1), '寅': (r: 5, c: 1), '艮': (r: 6, c: 1),
-  '坤': (r: 2, c: 7), '申': (r: 3, c: 7),
-  '庚': (r: 4, c: 7), '酉': (r: 5, c: 7), '辛': (r: 6, c: 7),
-  '辰': (r: 1, c: 1), '未': (r: 1, c: 7),
-  '戌': (r: 7, c: 7), '丑': (r: 7, c: 1),
-};
+// Border mountain arrays (4 sides, corners repeat for visual continuity)
+const _topMountains = ['辰', '巽', '巳', '丙', '午', '丁', '未'];
+const _bottomMountains = ['丑', '癸', '子', '壬', '亥', '乾', '戌'];
+const _leftMountains = ['辰', '乙', '卯', '甲', '寅', '艮', '丑'];
+const _rightMountains = ['未', '坤', '申', '庚', '酉', '辛', '戌'];
 
-const _borderMountains = <String>[
-  '辰', '巽', '巳', '丙', '午', '丁', '未',
-  '未', '坤', '申', '庚', '酉', '辛', '戌',
-  '戌', '乾', '亥', '壬', '子', '癸', '丑',
-  '丑', '艮', '寅', '甲', '卯', '乙', '辰',
-];
+/// Maps mountain → (row, col) in 0..6 range.
+/// Corners use a single position each.
+({int r, int c})? _mountainPos(String mountain) {
+  const map = <String, ({int r, int c})>{
+    // Top row (row 0)
+    '辰': (r: 0, c: 0), '巽': (r: 0, c: 1), '巳': (r: 0, c: 2),
+    '丙': (r: 0, c: 3), '午': (r: 0, c: 4), '丁': (r: 0, c: 5),
+    '未': (r: 0, c: 6),
+    // Left col (col 0)
+    '乙': (r: 1, c: 0), '卯': (r: 2, c: 0), '甲': (r: 3, c: 0),
+    '寅': (r: 4, c: 0), '艮': (r: 5, c: 0), '丑': (r: 6, c: 0),
+    // Right col (col 6)
+    '坤': (r: 1, c: 6), '申': (r: 2, c: 6), '庚': (r: 3, c: 6),
+    '酉': (r: 4, c: 6), '辛': (r: 5, c: 6), '戌': (r: 6, c: 6),
+    // Bottom row (row 6)
+    '癸': (r: 6, c: 1), '子': (r: 6, c: 2), '壬': (r: 6, c: 3),
+    '亥': (r: 6, c: 4), '乾': (r: 6, c: 5),
+  };
+  return map[mountain];
+}
 
-({int r, int c})? _mountainInnerPos(String mountain) =>
-    _mountainGridPos[mountain];
+/// Sanyuan color by mountain character.
+Color _sanyuanColorByMountain(String mountain) {
+  final info = Mountain24InfoTable.fromMountain(mountain);
+  switch (info.yuanLong) {
+    case '天':
+      return const Color(0xFF3B8C6E); // 玉青绿
+    case '地':
+      return const Color(0xFF9A5A3A); // 朱砂棕
+    case '人':
+      return const Color(0xFFC8922E); // 金橙
+    default:
+      return const Color(0xFF6B5A45);
+  }
+}
 
 class TiandirenVentPainter extends CustomPainter {
   final List<CompassRecord> records;
@@ -53,11 +72,10 @@ class TiandirenVentPainter extends CustomPainter {
 
     final cellW = gridRect.width / 7;
     final cellH = gridRect.height / 7;
-    final s = side / 300; // scale factor
+    final s = side / 300;
 
     _drawBackground(canvas, chartLeft, chartTop, chartSide, s);
-    _drawBorderMountains(
-        canvas, chartLeft, chartTop, chartSide, labelBand, s);
+    _drawBorderMountains(canvas, gridRect, labelBand, cellW, cellH, s);
     _drawInnerGrid(canvas, gridRect, cellW, cellH, s);
     _drawPoints(canvas, gridRect, cellW, cellH, s);
   }
@@ -82,58 +100,61 @@ class TiandirenVentPainter extends CustomPainter {
   }
 
   // =============================================
-  // Border mountains
+  // Border mountains — each centred on a grid column/row
   // =============================================
 
-  void _drawBorderMountains(Canvas canvas, double left, double top,
-      double chartSide, double labelBand, double s) {
-    final cellSize = chartSide / 8;
+  void _drawBorderMountains(Canvas canvas, Rect gridRect,
+      double labelBand, double cellW, double cellH, double s) {
+    final style = TextStyle(
+      color: const Color(0xFF4F351F),
+      fontSize: 12.5 * s,
+      fontWeight: FontWeight.w500,
+      fontFamily: 'serif',
+    );
 
-    for (int i = 0; i < 28; i++) {
-      final mountain = _borderMountains[i];
-      final side = i ~/ 7;
-      final pos = i % 7;
+    final topY = gridRect.top - labelBand * 0.52;
+    final bottomY = gridRect.bottom + labelBand * 0.52;
+    final leftX = gridRect.left - labelBand * 0.52;
+    final rightX = gridRect.right + labelBand * 0.52;
 
-      double x, y;
-      if (side == 0) {
-        x = left + (pos + 1) * cellSize;
-        y = top + cellSize * 0.5;
-      } else if (side == 1) {
-        x = left + chartSide - cellSize * 0.5;
-        y = top + (pos + 1) * cellSize;
-      } else if (side == 2) {
-        x = left + (7 - pos) * cellSize;
-        y = top + chartSide - cellSize * 0.5;
-      } else {
-        x = left + cellSize * 0.5;
-        y = top + (7 - pos) * cellSize;
-      }
+    // Top and bottom — align to column centres
+    for (int i = 0; i < 7; i++) {
+      final x = gridRect.left + cellW * (i + 0.5);
+      _drawStyledText(canvas, _topMountains[i], Offset(x, topY), style);
+      _drawStyledText(
+          canvas, _bottomMountains[i], Offset(x, bottomY), style);
+    }
 
-      _drawText(canvas, mountain, Offset(x, y), 11 * s,
-          FontWeight.w500, const Color(0xFF4F351F));
+    // Left and right — align to row centres
+    for (int i = 0; i < 7; i++) {
+      final y = gridRect.top + cellH * (i + 0.5);
+      _drawStyledText(
+          canvas, _leftMountains[i], Offset(leftX, y), style);
+      _drawStyledText(
+          canvas, _rightMountains[i], Offset(rightX, y), style);
     }
   }
 
   // =============================================
-  // Inner grid (7x7)
+  // Inner grid (7×7) — drawn inside gridRect
   // =============================================
 
   void _drawInnerGrid(Canvas canvas, Rect gridRect, double cellW,
       double cellH, double s) {
     canvas.drawRect(gridRect,
-        Paint()..color = const Color(0xFFFFF8E8));
+        Paint()..color = const Color(0xFFFFF4DC));
 
     final linePaint = Paint()
-      ..color = const Color(0xFFC9A96A).withValues(alpha: 0.25)
+      ..color = const Color(0xFFC9A96A).withValues(alpha: 0.35)
       ..strokeWidth = 0.8;
 
     for (int i = 0; i <= 7; i++) {
-      final y = gridRect.top + i * cellH;
-      canvas.drawLine(Offset(gridRect.left, y),
-          Offset(gridRect.right, y), linePaint);
-      final x = gridRect.left + i * cellW;
-      canvas.drawLine(Offset(x, gridRect.top),
-          Offset(x, gridRect.bottom), linePaint);
+      final x = gridRect.left + cellW * i;
+      canvas.drawLine(
+          Offset(x, gridRect.top), Offset(x, gridRect.bottom), linePaint);
+      final y = gridRect.top + cellH * i;
+      canvas.drawLine(
+          Offset(gridRect.left, y), Offset(gridRect.right, y), linePaint);
     }
 
     canvas.drawRect(
@@ -145,7 +166,7 @@ class TiandirenVentPainter extends CustomPainter {
   }
 
   // =============================================
-  // Point markers — inside grid only
+  // Points — coloured by sanyuan, labelled by type
   // =============================================
 
   void _drawPoints(Canvas canvas, Rect gridRect, double cellW,
@@ -153,18 +174,18 @@ class TiandirenVentPainter extends CustomPainter {
     for (final record in records) {
       final mountain =
           Mountain24Calculator.fromDegree(record.heading).mountain;
-      final pos = _mountainInnerPos(mountain);
+      final pos = _mountainPos(mountain);
       if (pos == null) continue;
 
-      final px = gridRect.left + (pos.c - 0.5) * cellW;
-      final py = gridRect.top + (pos.r - 0.5) * cellH;
+      final px = gridRect.left + cellW * (pos.c + 0.5);
+      final py = gridRect.top + cellH * (pos.r + 0.5);
       final center = Offset(px, py);
 
       final label = MeasureTypeMeaning.pointShortLabel(
         type: record.measureType,
         measureName: record.measureName,
       );
-      final color = _pointColor(record.measureType);
+      final color = _sanyuanColorByMountain(mountain);
 
       canvas.drawCircle(center, 9 * s, Paint()..color = color);
       _drawCenteredText(canvas, label, center, 9 * s,
@@ -172,47 +193,19 @@ class TiandirenVentPainter extends CustomPainter {
     }
   }
 
-  Color _pointColor(String type) {
-    switch (type) {
-      case 'door':
-        return const Color(0xFF8A3A2B);
-      case 'bed':
-        return const Color(0xFF3B7A4F);
-      case 'stove':
-        return const Color(0xFFC8922E);
-      case 'altar':
-        return const Color(0xFF6B4A7A);
-      case 'desk':
-        return const Color(0xFF3A6B8A);
-      case 'livingRoom':
-        return const Color(0xFF7A6B3A);
-      case 'balcony':
-        return const Color(0xFF4A8A7A);
-      case 'window':
-        return const Color(0xFF5A7A8A);
-      default:
-        return const Color(0xFF6B5A45);
-    }
-  }
-
   // =============================================
   // Helpers
   // =============================================
 
-  void _drawText(Canvas canvas, String text, Offset pos,
-      double size, FontWeight weight, Color color) {
+  void _drawStyledText(
+      Canvas canvas, String text, Offset center, TextStyle style) {
     final tp = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-            color: color,
-            fontSize: size,
-            fontWeight: weight,
-            fontFamily: 'serif'),
-      ),
+      text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
     )..layout();
-    tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
+    tp.paint(canvas,
+        Offset(center.dx - tp.width / 2, center.dy - tp.height / 2));
   }
 
   void _drawCenteredText(Canvas canvas, String text, Offset ctr,

@@ -13,6 +13,7 @@ import '../../fengshui/bazhai_base_resolver.dart';
 import '../compass/compass_page.dart';
 import '../records/compass_record_detail_page.dart';
 import 'simple_project_plate_page.dart';
+import 'tiandiren_vent_page.dart';
 
 class MeasurementProjectDetailPage extends StatefulWidget {
   final MeasurementProject project;
@@ -158,6 +159,30 @@ class _MeasurementProjectDetailPageState
                     },
                     icon: const Icon(Icons.grid_view, size: 18),
                     label: const Text('简易正盘'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF5A4724),
+                      side: const BorderSide(
+                          color: Color(0xFF5A4724)),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TiandirenVentPage(
+                              project: widget.project),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.circle_outlined,
+                        size: 18),
+                    label: const Text('天地人通气'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF5A4724),
                       side: const BorderSide(

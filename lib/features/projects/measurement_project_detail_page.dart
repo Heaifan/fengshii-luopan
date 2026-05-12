@@ -117,6 +117,14 @@ class _MeasurementProjectDetailPageState
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: AppTheme.textLabel)),
+                        if (_project!.baZhaiMode == 'doorPosition' &&
+                            _baseDoorRecord != null)
+                          Text(
+                            '伏位来源：${_baseDoorRecord!.measureName?.isNotEmpty == true ? _baseDoorRecord!.measureName! : MeasureTypes.label(_baseDoorRecord!.measureType)}｜${_baseDoorRecord!.directionText}',
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w500)),
                         Text('已测 ${_points.length} 个点',
                             style: const TextStyle(
                                 fontSize: 13,
@@ -370,12 +378,76 @@ class _MeasurementProjectDetailPageState
     );
   }
 
+  CompassRecord? get _baseDoorRecord {
+    if (_project?.baZhaiMode != 'doorPosition') return null;
+    for (final r in _points) {
+      if (r.measureType == 'door') return r;
+    }
+    return null;
+  }
+
   String get _projectBaseGua {
     final base = BaZhaiBaseResolver.resolveBasePalace(
       project: _project!,
       records: _points,
     );
     return base ?? '乾';
+  }
+
+  /// Resolve base gua for point editing, handling door-position mode correctly.
+  String _resolveBaseGuaForEdit({
+    required CompassRecord originalPoint,
+    required MeasurePointFormResult result,
+    required double heading,
+  }) {
+    final mode = _project?.baZhaiMode ?? 'wholeHouse';
+    if (mode != 'doorPosition') return _projectBaseGua;
+
+    // Editing a door: use new heading immediately
+    if (result.measureType == 'door') {
+      final sector =
+          DirectionSector.sector8FromHeading(heading);
+      final gua = DirectionSector.sectorToGua(sector);
+      if (gua.isNotEmpty) return gua;
+    }
+
+    // Changing door to non-door: simulate updated records
+    if (originalPoint.measureType == 'door' &&
+        result.measureType != 'door') {
+      final simulated = _points.map((r) {
+        if (r.id != originalPoint.id) return r;
+        return CompassRecord(
+          id: r.id,
+          name: r.name,
+          location: r.location,
+          note: result.note,
+          createdAt: r.createdAt,
+          heading: heading,
+          directionText: r.directionText,
+          sittingFacingText: r.sittingFacingText,
+          sittingMountain: r.sittingMountain,
+          facingMountain: r.facingMountain,
+          palace: r.palace,
+          mountainText: r.mountainText,
+          bazhaiText: r.bazhaiText,
+          statusText: r.statusText,
+          horizontalAngle: r.horizontalAngle,
+          verticalAngle: r.verticalAngle,
+          houseGua: r.houseGua,
+          projectId: r.projectId,
+          measureType: result.measureType,
+          measureName: result.measureName,
+          spaceName: result.spaceName,
+        );
+      }).toList();
+      final base = BaZhaiBaseResolver.resolveBasePalace(
+        project: _project!,
+        records: simulated,
+      );
+      return base ?? '乾';
+    }
+
+    return _projectBaseGua;
   }
 
   Future<void> _onEditPoint(CompassRecord point) async {
@@ -391,9 +463,14 @@ class _MeasurementProjectDetailPageState
       await _storage.deleteRecord(point.id);
     } else {
       final heading = result.heading ?? point.heading;
+      final editBaseGua = _resolveBaseGuaForEdit(
+        originalPoint: point,
+        result: result,
+        heading: heading,
+      );
       final reading = CompassReadingBuilder.build(
         degree: heading,
-        houseGua: _projectBaseGua,
+        houseGua: editBaseGua,
       );
       final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
       final starElement = starMeta?.element ?? '';
@@ -417,7 +494,7 @@ class _MeasurementProjectDetailPageState
         statusText: point.statusText,
         horizontalAngle: point.horizontalAngle,
         verticalAngle: point.verticalAngle,
-        houseGua: _projectBaseGua,
+        houseGua: editBaseGua,
         projectId: point.projectId,
         measureType: result.measureType,
         measureName: result.measureName,

@@ -162,7 +162,16 @@ class _MeasurePointFormSheetState
                       color: AppTheme.textTitle,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 4),
+                  Text(
+                    '当前八宅基准：${widget.houseGua}宫',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
 
                   // Type
                   const Text('测点类型',

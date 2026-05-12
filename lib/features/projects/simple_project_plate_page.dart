@@ -317,6 +317,60 @@ class _SimpleProjectPlatePageState
     await _showEditSheet(record);
   }
 
+  Future<String> _resolveEditBaseGua({
+    required CompassRecord originalPoint,
+    required MeasurePointFormResult result,
+    required double heading,
+  }) async {
+    final mode = widget.project.baZhaiMode;
+    if (mode != 'doorPosition') return _projectBasePalace;
+
+    if (result.measureType == 'door') {
+      final sector = DirectionSector.sector8FromHeading(heading);
+      final gua = DirectionSector.sectorToGua(sector);
+      if (gua.isNotEmpty) return gua;
+    }
+
+    if (originalPoint.measureType == 'door' &&
+        result.measureType != 'door') {
+      final records = await _storage
+          .loadRecordsByProject(widget.project.id);
+      final simulated = records.map((r) {
+        if (r.id != originalPoint.id) return r;
+        return CompassRecord(
+          id: r.id,
+          name: r.name,
+          location: r.location,
+          note: result.note,
+          createdAt: r.createdAt,
+          heading: heading,
+          directionText: r.directionText,
+          sittingFacingText: r.sittingFacingText,
+          sittingMountain: r.sittingMountain,
+          facingMountain: r.facingMountain,
+          palace: r.palace,
+          mountainText: r.mountainText,
+          bazhaiText: r.bazhaiText,
+          statusText: r.statusText,
+          horizontalAngle: r.horizontalAngle,
+          verticalAngle: r.verticalAngle,
+          houseGua: r.houseGua,
+          projectId: r.projectId,
+          measureType: result.measureType,
+          measureName: result.measureName,
+          spaceName: result.spaceName,
+        );
+      }).toList();
+      final base = BaZhaiBaseResolver.resolveBasePalace(
+        project: widget.project,
+        records: simulated,
+      );
+      return base ?? '乾';
+    }
+
+    return _projectBasePalace;
+  }
+
   Future<void> _showEditSheet(CompassRecord record) async {
     final result = await showMeasurePointFormSheet(
       context: context,
@@ -331,9 +385,14 @@ class _SimpleProjectPlatePageState
       await _storage.deleteRecord(record.id);
     } else {
       final heading = result.heading ?? record.heading;
+      final editBaseGua = await _resolveEditBaseGua(
+        originalPoint: record,
+        result: result,
+        heading: heading,
+      );
       final reading = CompassReadingBuilder.build(
         degree: heading,
-        houseGua: _projectBasePalace,
+        houseGua: editBaseGua,
       );
       final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
       final starElement = starMeta?.element ?? '';
@@ -357,7 +416,7 @@ class _SimpleProjectPlatePageState
         statusText: record.statusText,
         horizontalAngle: record.horizontalAngle,
         verticalAngle: record.verticalAngle,
-        houseGua: _projectBasePalace,
+        houseGua: editBaseGua,
         projectId: record.projectId,
         measureType: result.measureType,
         measureName: result.measureName,

@@ -1,5 +1,7 @@
 import '../data/models/compass_record.dart';
 import '../data/models/measurement_project.dart';
+import 'compass_math.dart';
+import 'compass_reading_builder.dart';
 import 'direction_sector.dart';
 import 'bazhai_you_nian_table.dart';
 
@@ -56,6 +58,75 @@ class BaZhaiBaseResolver {
     }
 
     return '整宅${base}宅｜伏位${base}宫';
+  }
+
+  /// Find the first door record for 伏位 source.
+  static CompassRecord? firstDoor(List<CompassRecord> records) {
+    for (final r in records) {
+      if (r.measureType == 'door') return r;
+    }
+    return null;
+  }
+
+  /// Recalculate all records' bazhai data based on current base palace.
+  /// When base is null (e.g. doorPosition with no door), sets bazhaiText to '伏位待定'.
+  static List<CompassRecord> recalculateAllPoints({
+    required MeasurementProject project,
+    required List<CompassRecord> records,
+  }) {
+    final baseGua = resolveBasePalace(
+      project: project,
+      records: records,
+    );
+
+    return records.map((r) {
+      if (baseGua == null) {
+        return CompassRecord(
+          id: r.id, name: r.name, location: r.location, note: r.note,
+          createdAt: r.createdAt, heading: r.heading,
+          directionText: r.directionText,
+          sittingFacingText: r.sittingFacingText,
+          sittingMountain: r.sittingMountain,
+          facingMountain: r.facingMountain,
+          palace: r.palace, mountainText: r.mountainText,
+          bazhaiText: '伏位待定',
+          statusText: r.statusText,
+          horizontalAngle: r.horizontalAngle,
+          verticalAngle: r.verticalAngle,
+          houseGua: r.houseGua,
+          projectId: r.projectId,
+          measureType: r.measureType,
+          measureName: r.measureName,
+          spaceName: r.spaceName,
+        );
+      }
+
+      final reading = CompassReadingBuilder.build(
+          degree: r.heading, houseGua: baseGua);
+      final dirText = '${compassDirectionName(r.heading)}${r.heading.toStringAsFixed(0)}°';
+      final meta = bazhaiStarMetaMap[reading.bazhaiStar];
+      final bazhaiText = '${reading.bazhaiStar}${meta?.element ?? ''}（${reading.bazhaiRank}）';
+
+      return CompassRecord(
+        id: r.id, name: r.name, location: r.location, note: r.note,
+        createdAt: r.createdAt, heading: r.heading,
+        directionText: dirText,
+        sittingFacingText: reading.sittingFacingText,
+        sittingMountain: reading.sittingMountain,
+        facingMountain: reading.facingMountain,
+        palace: '${reading.facingGua}宫',
+        mountainText: reading.fullSanyuanText,
+        bazhaiText: bazhaiText,
+        statusText: r.statusText,
+        horizontalAngle: r.horizontalAngle,
+        verticalAngle: r.verticalAngle,
+        houseGua: baseGua,
+        projectId: r.projectId,
+        measureType: r.measureType,
+        measureName: r.measureName,
+        spaceName: r.spaceName,
+      );
+    }).toList();
   }
 
   /// Generate the 8-palace star map for a given base palace.

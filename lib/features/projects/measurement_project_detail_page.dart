@@ -394,62 +394,6 @@ class _MeasurementProjectDetailPageState
     return base ?? '乾';
   }
 
-  /// Resolve base gua for point editing, handling door-position mode correctly.
-  String _resolveBaseGuaForEdit({
-    required CompassRecord originalPoint,
-    required MeasurePointFormResult result,
-    required double heading,
-  }) {
-    final mode = _project?.baZhaiMode ?? 'wholeHouse';
-    if (mode != 'doorPosition') return _projectBaseGua;
-
-    // Editing a door: use new heading immediately
-    if (result.measureType == 'door') {
-      final sector =
-          DirectionSector.sector8FromHeading(heading);
-      final gua = DirectionSector.sectorToGua(sector);
-      if (gua.isNotEmpty) return gua;
-    }
-
-    // Changing door to non-door: simulate updated records
-    if (originalPoint.measureType == 'door' &&
-        result.measureType != 'door') {
-      final simulated = _points.map((r) {
-        if (r.id != originalPoint.id) return r;
-        return CompassRecord(
-          id: r.id,
-          name: r.name,
-          location: r.location,
-          note: result.note,
-          createdAt: r.createdAt,
-          heading: heading,
-          directionText: r.directionText,
-          sittingFacingText: r.sittingFacingText,
-          sittingMountain: r.sittingMountain,
-          facingMountain: r.facingMountain,
-          palace: r.palace,
-          mountainText: r.mountainText,
-          bazhaiText: r.bazhaiText,
-          statusText: r.statusText,
-          horizontalAngle: r.horizontalAngle,
-          verticalAngle: r.verticalAngle,
-          houseGua: r.houseGua,
-          projectId: r.projectId,
-          measureType: result.measureType,
-          measureName: result.measureName,
-          spaceName: result.spaceName,
-        );
-      }).toList();
-      final base = BaZhaiBaseResolver.resolveBasePalace(
-        project: _project!,
-        records: simulated,
-      );
-      return base ?? '乾';
-    }
-
-    return _projectBaseGua;
-  }
-
   Future<void> _onEditPoint(CompassRecord point) async {
     final result = await showMeasurePointFormSheet(
       context: context,
@@ -459,49 +403,59 @@ class _MeasurementProjectDetailPageState
     );
     if (result == null || !mounted) return;
 
+    // Apply the edit/delete to the single point first
     if (result.delete) {
       await _storage.deleteRecord(point.id);
     } else {
       final heading = result.heading ?? point.heading;
-      final editBaseGua = _resolveBaseGuaForEdit(
-        originalPoint: point,
-        result: result,
-        heading: heading,
-      );
-      final reading = CompassReadingBuilder.build(
-        degree: heading,
-        houseGua: editBaseGua,
-      );
-      final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
-      final starElement = starMeta?.element ?? '';
-      final bazhaiText = '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
-      final directionText = '${compassDirectionName(heading)}${heading.toStringAsFixed(0)}°';
+      final base = _project!.baZhaiMode != 'doorPosition'
+          ? _projectBaseGua
+          : (result.measureType == 'door'
+              ? (DirectionSector.sectorToGua(
+                      DirectionSector.sector8FromHeading(heading))
+                  .isEmpty
+                  ? '乾'
+                  : DirectionSector.sectorToGua(
+                      DirectionSector.sector8FromHeading(heading)))
+              : _projectBaseGua);
 
-      final updated = CompassRecord(
-        id: point.id,
-        name: point.name,
-        location: point.location,
-        note: result.note,
-        createdAt: point.createdAt,
-        heading: heading,
-        directionText: directionText,
-        sittingFacingText: reading.sittingFacingText,
-        sittingMountain: reading.sittingMountain,
-        facingMountain: reading.facingMountain,
-        palace: '${reading.facingGua}宫',
-        mountainText: reading.fullSanyuanText,
-        bazhaiText: bazhaiText,
+      final updatedRecord = CompassRecord(
+        id: point.id, name: point.name, location: point.location,
+        note: result.note, createdAt: point.createdAt,
+        heading: heading, directionText: point.directionText,
+        sittingFacingText: point.sittingFacingText,
+        sittingMountain: point.sittingMountain,
+        facingMountain: point.facingMountain,
+        palace: point.palace, mountainText: point.mountainText,
+        bazhaiText: point.bazhaiText,
         statusText: point.statusText,
         horizontalAngle: point.horizontalAngle,
         verticalAngle: point.verticalAngle,
-        houseGua: editBaseGua,
-        projectId: point.projectId,
+        houseGua: point.houseGua, projectId: point.projectId,
         measureType: result.measureType,
         measureName: result.measureName,
         spaceName: result.spaceName,
       );
-      await _storage.updateRecord(updated);
+      await _storage.updateRecord(updatedRecord);
     }
+
+    // Reload fresh records from storage
+    final fresh =
+        await _storage.loadRecordsByProject(_project!.id);
+
+    // Recalculate ALL project points based on current base palace
+    final recalculated = BaZhaiBaseResolver.recalculateAllPoints(
+      project: _project!,
+      records: fresh,
+    );
+
+    // Save all recalculated records
+    final allRecords = await _storage.loadRecords();
+    for (final rec in recalculated) {
+      final idx = allRecords.indexWhere((r) => r.id == rec.id);
+      if (idx >= 0) allRecords[idx] = rec;
+    }
+    await _storage.saveRecords(allRecords);
 
     await _loadPoints();
     if (!mounted) return;

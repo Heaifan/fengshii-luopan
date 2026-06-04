@@ -28,7 +28,13 @@ String _baZhaiModeLabel(String mode) {
 }
 
 class NewMeasurementProjectPage extends StatefulWidget {
-  const NewMeasurementProjectPage({super.key});
+  /// If true, pops with the project instead of navigating to compass page.
+  final bool returnProject;
+
+  const NewMeasurementProjectPage({
+    super.key,
+    this.returnProject = false,
+  });
 
   @override
   State<NewMeasurementProjectPage> createState() =>
@@ -83,6 +89,11 @@ class _NewMeasurementProjectPageState extends State<NewMeasurementProjectPage> {
     await SettingsStorage().addProject(project);
 
     if (!mounted) return;
+
+    if (widget.returnProject) {
+      Navigator.pop(context, project);
+      return;
+    }
 
     Navigator.pushReplacement(
       context,

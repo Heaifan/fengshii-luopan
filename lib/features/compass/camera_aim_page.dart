@@ -16,6 +16,7 @@ import '../../fengshui/compass_reading_builder.dart';
 import '../../fengshui/direction_sector.dart';
 import '../projects/new_measurement_project_page.dart';
 import '../projects/widgets/measure_point_form_sheet.dart';
+import '../projects/widgets/project_picker_sheet.dart';
 import 'compass_sensor_service.dart';
 import 'services/photo_watermark_service.dart';
 
@@ -95,56 +96,54 @@ class _CameraAimPageState extends State<CameraAimPage>
     if (widget.project != null) {
       _project = widget.project;
       await _loadProjectRecords();
-      setState(() => _projectChecked = true);
-      _initCamera();
+      if (mounted) setState(() => _projectChecked = true);
+      await _initCamera();
       return;
     }
 
-    // No project — ask user to create one
-    if (!mounted) return;
-    final created = await _showCreateProjectDialog();
-    if (created != true || !mounted) {
-      Navigator.pop(context);
+    final project = await _ensureProjectForCamera();
+
+    if (project == null) {
+      if (mounted) Navigator.pop(context);
       return;
     }
-    // User should have created a project — find the latest
-    final projects = await _storage.loadProjects();
-    if (projects.isNotEmpty) {
-      _project = projects.first;
-      await _loadProjectRecords();
-    }
-    if (mounted) {
-      setState(() => _projectChecked = true);
-      _initCamera();
-    }
+
+    _project = project;
+    await _loadProjectRecords();
+
+    if (!mounted) return;
+    setState(() => _projectChecked = true);
+    await _initCamera();
   }
 
-  Future<bool?> _showCreateProjectDialog() async {
-    return showDialog<bool>(
+  /// Let user pick an existing project or create a new one.
+  Future<MeasurementProject?> _ensureProjectForCamera() async {
+    final projects = await _storage.loadProjects();
+
+    if (!mounted) return null;
+
+    // No projects at all → force create
+    if (projects.isEmpty) {
+      return _createProjectForCamera();
+    }
+
+    // Have projects → show picker
+    return showModalBottomSheet<MeasurementProject>(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('请先创建项目'),
-        content: const Text(
-          '现场照片和测点需要保存到项目中。\n请先创建一个项目，再进行相机测向。',
+      builder: (ctx) => ProjectPickerSheet(
+        projects: projects,
+        onCreateProject: _createProjectForCamera,
+      ),
+    );
+  }
+
+  Future<MeasurementProject?> _createProjectForCamera() async {
+    return Navigator.push<MeasurementProject>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const NewMeasurementProjectPage(
+          returnProject: true,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.push(
-                ctx,
-                MaterialPageRoute(
-                  builder: (_) => const NewMeasurementProjectPage(),
-                ),
-              ).then((_) => Navigator.pop(ctx, true));
-            },
-            child: const Text('创建项目'),
-          ),
-        ],
       ),
     );
   }

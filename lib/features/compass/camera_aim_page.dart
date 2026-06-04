@@ -9,45 +9,15 @@ import '../../data/models/compass_record.dart';
 import '../../data/models/measure_type.dart';
 import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
+import '../../fengshui/bazhai_base_resolver.dart';
 import '../../fengshui/bazhai_you_nian_table.dart';
 import '../../fengshui/compass_math.dart';
 import '../../fengshui/compass_reading_builder.dart';
 import '../../fengshui/direction_sector.dart';
+import '../projects/new_measurement_project_page.dart';
 import '../projects/widgets/measure_point_form_sheet.dart';
 import 'compass_sensor_service.dart';
-
-/// Snapshot of all measure data at capture moment.
-class MeasureSnapshot {
-  final double heading;
-  final String directionText;
-  final String sittingFacingText;
-  final String palaceText;
-  final String facingMountain;
-  final String sittingMountain;
-  final String bazhaiText;
-  final String statusText;
-  final String mountainText;
-  final String houseGua;
-  final double? pitch;
-  final double? roll;
-  final DateTime takenAt;
-
-  const MeasureSnapshot({
-    required this.heading,
-    required this.directionText,
-    required this.sittingFacingText,
-    required this.palaceText,
-    required this.facingMountain,
-    required this.sittingMountain,
-    required this.bazhaiText,
-    required this.statusText,
-    required this.mountainText,
-    required this.houseGua,
-    this.pitch,
-    this.roll,
-    required this.takenAt,
-  });
-}
+import 'services/photo_watermark_service.dart';
 
 class CameraAimPage extends StatefulWidget {
   final MeasurementProject? project;
@@ -63,6 +33,8 @@ class _CameraAimPageState extends State<CameraAimPage>
   final _sensor = const CompassSensorService();
   final _storage = SettingsStorage();
 
+  List<CameraDescription> _backCameras = [];
+  int _cameraIndex = 0;
   CameraController? _cameraController;
   bool _cameraInitialized = false;
   String? _cameraError;
@@ -78,12 +50,20 @@ class _CameraAimPageState extends State<CameraAimPage>
   // UI state
   bool _capturing = false;
   bool _saving = false;
+  String? _tempPhotoPath;
+
+  // Project / Bazhai state
+  MeasurementProject? _project;
+  List<CompassRecord> _projectRecords = [];
+  bool _bazhaiResolved = false;
+  String _bazhaiBaseGua = '';
+  bool _projectChecked = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initCamera();
+    _initProject();
     _initHeading();
   }
 
@@ -92,6 +72,8 @@ class _CameraAimPageState extends State<CameraAimPage>
     WidgetsBinding.instance.removeObserver(this);
     _headingSub?.cancel();
     _cameraController?.dispose();
+    // Cleanup temp photo if any
+    _cleanupTemp();
     super.dispose();
   }
 
@@ -105,6 +87,93 @@ class _CameraAimPageState extends State<CameraAimPage>
     }
   }
 
+  // ============================================================
+  // Project check
+  // ============================================================
+
+  Future<void> _initProject() async {
+    if (widget.project != null) {
+      _project = widget.project;
+      await _loadProjectRecords();
+      setState(() => _projectChecked = true);
+      _initCamera();
+      return;
+    }
+
+    // No project — ask user to create one
+    if (!mounted) return;
+    final created = await _showCreateProjectDialog();
+    if (created != true || !mounted) {
+      Navigator.pop(context);
+      return;
+    }
+    // User should have created a project — find the latest
+    final projects = await _storage.loadProjects();
+    if (projects.isNotEmpty) {
+      _project = projects.first;
+      await _loadProjectRecords();
+    }
+    if (mounted) {
+      setState(() => _projectChecked = true);
+      _initCamera();
+    }
+  }
+
+  Future<bool?> _showCreateProjectDialog() async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('请先创建项目'),
+        content: const Text(
+          '现场照片和测点需要保存到项目中。\n请先创建一个项目，再进行相机测向。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.push(
+                ctx,
+                MaterialPageRoute(
+                  builder: (_) => const NewMeasurementProjectPage(),
+                ),
+              ).then((_) => Navigator.pop(ctx, true));
+            },
+            child: const Text('创建项目'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadProjectRecords() async {
+    if (_project == null) return;
+    final records = await _storage.loadRecordsByProject(_project!.id);
+    _projectRecords = records;
+    _updateBazhaiStatus();
+  }
+
+  void _updateBazhaiStatus() {
+    if (_project == null) {
+      _bazhaiResolved = false;
+      _bazhaiBaseGua = '';
+      return;
+    }
+    final base = BaZhaiBaseResolver.resolveBasePalace(
+      project: _project!,
+      records: _projectRecords,
+    );
+    _bazhaiResolved = base != null;
+    _bazhaiBaseGua = base ?? '乾';
+  }
+
+  // ============================================================
+  // Camera
+  // ============================================================
+
   Future<void> _initCamera() async {
     try {
       final cameras = await availableCameras();
@@ -112,13 +181,26 @@ class _CameraAimPageState extends State<CameraAimPage>
         setState(() => _cameraError = '未检测到相机');
         return;
       }
-      // Prefer back camera
-      final back = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.back,
-        orElse: () => cameras.first,
-      );
-      final controller = CameraController(back, ResolutionPreset.medium);
-      _cameraController = controller;
+      // Collect back cameras
+      _backCameras = cameras
+          .where((c) => c.lensDirection == CameraLensDirection.back)
+          .toList();
+      if (_backCameras.isEmpty) {
+        // Fallback to any camera
+        _backCameras = [cameras.first];
+      }
+      _cameraIndex = _backCameras.length - 1; // Last back cam is often wide
+      await _initCameraController(_backCameras[_cameraIndex]);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _cameraError = '相机初始化失败：$e');
+    }
+  }
+
+  Future<void> _initCameraController(CameraDescription camera) async {
+    final controller = CameraController(camera, ResolutionPreset.medium);
+    _cameraController = controller;
+    try {
       await controller.initialize();
       if (!mounted) return;
       setState(() => _cameraInitialized = true);
@@ -127,6 +209,19 @@ class _CameraAimPageState extends State<CameraAimPage>
       setState(() => _cameraError = '相机初始化失败：$e');
     }
   }
+
+  void _switchCamera() {
+    if (_backCameras.length < 2) return;
+    final newIdx = (_cameraIndex + 1) % _backCameras.length;
+    _cameraController?.dispose();
+    _cameraInitialized = false;
+    setState(() => _cameraIndex = newIdx);
+    _initCameraController(_backCameras[newIdx]);
+  }
+
+  // ============================================================
+  // Heading
+  // ============================================================
 
   void _initHeading() {
     _headingSub = _sensor.readingStream.listen((reading) {
@@ -137,11 +232,11 @@ class _CameraAimPageState extends State<CameraAimPage>
     });
   }
 
-  // ---- Build reading from current heading ----
-  CompassReading _buildReading({String houseGua = '乾'}) {
+  CompassReading _buildReading({String? houseGua}) {
+    final gua = houseGua ?? _bazhaiBaseGua;
     return CompassReadingBuilder.build(
       degree: _heading,
-      houseGua: houseGua,
+      houseGua: gua,
     );
   }
 
@@ -149,43 +244,38 @@ class _CameraAimPageState extends State<CameraAimPage>
     return '${compassDirectionName(_heading)}${_heading.toStringAsFixed(0)}°';
   }
 
-  // ---- Capture ----
+  // ============================================================
+  // Capture → Watermark → Save
+  // ============================================================
+
   Future<void> _onCapture() async {
-    if (_capturing || _cameraController == null) return;
+    if (_capturing || _cameraController == null || _project == null) return;
     setState(() => _capturing = true);
 
     try {
-      // 1. Take photo
+      // 1. Take photo → save as temp file
       final XFile? photo;
       try {
         photo = await _cameraController!.takePicture();
       } catch (e) {
-        // Photo failed — ask user if they want to save without photo
         if (!mounted) return;
         final proceed = await _showPhotoFailedDialog();
-        if (proceed != true) {
-          setState(() => _capturing = false);
-          return;
+        if (proceed == true) {
+          await _saveWithoutPhoto();
         }
-        await _openSaveSheet(null);
         setState(() => _capturing = false);
         return;
       }
 
-      // 2. Save photo to app private dir
-      final now = DateTime.now();
-      final photoDir = await getApplicationDocumentsDirectory();
-      final photoSubDir = Directory('${photoDir.path}/project_photos');
-      if (!await photoSubDir.exists()) {
-        await photoSubDir.create(recursive: true);
-      }
-      final photoPath =
-          '${photoSubDir.path}/capture_${now.millisecondsSinceEpoch}.jpg';
-      await File(photo.path).copy(photoPath);
+      // 2. Save to temp
+      final tempDir = await getApplicationDocumentsDirectory();
+      final tempFile = '${tempDir.path}/temp_capture_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      _tempPhotoPath = tempFile;
+      await File(photo.path).copy(tempFile);
 
-      // 3. Open save sheet
+      // 3. Open save form
       if (!mounted) return;
-      await _openSaveSheet(photoPath);
+      await _openSaveForm(tempFile);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -196,17 +286,25 @@ class _CameraAimPageState extends State<CameraAimPage>
     }
   }
 
-  Future<void> _openSaveSheet(String? photoPath) async {
+  Future<void> _openSaveForm(String tempPath) async {
     final now = DateTime.now();
     final reading = _buildReading();
-    final meta = bazhaiStarMetaMap[reading.bazhaiStar];
-    final bazhaiText =
-        '${reading.bazhaiStar}${meta?.element ?? ''}（${reading.bazhaiRank}）';
     final dirText = _directionText();
+    final sectorKey = DirectionSector.sector8FromHeading(_heading);
+    final palaceLabel = DirectionSector.sectorGuaPalaceLabel(sectorKey);
+
+    // Build bazhai text — handle pending
+    String bazhaiDisplay;
+    if (_bazhaiResolved) {
+      final meta = bazhaiStarMetaMap[reading.bazhaiStar];
+      bazhaiDisplay =
+          '${reading.bazhaiStar}${meta?.element ?? ''}（${reading.bazhaiRank}）';
+    } else {
+      bazhaiDisplay = '待定（请先保存入户门）';
+    }
 
     setState(() => _saving = true);
 
-    // Open the existing measure point form sheet
     final result = await showMeasurePointFormSheet(
       context: context,
       initialRecord: CompassRecord.create(
@@ -216,29 +314,55 @@ class _CameraAimPageState extends State<CameraAimPage>
         sittingFacingText: reading.sittingFacingText,
         sittingMountain: reading.sittingMountain,
         facingMountain: reading.facingMountain,
-        palace: '${reading.facingGua}宫',
+        palace: '$palaceLabel',
         mountainText: reading.fullSanyuanText,
-        bazhaiText: bazhaiText,
+        bazhaiText: bazhaiDisplay,
         statusText: '相机测向',
         horizontalAngle: _roll,
         verticalAngle: _pitch,
-        houseGua: reading.houseGua,
-        projectId: widget.project?.id,
-        photoPath: photoPath,
-        photoTakenAt: now,
-        savedPitch: _pitch,
-        savedRoll: _roll,
-        savedFromCamera: photoPath != null,
+        houseGua: _bazhaiBaseGua,
+        projectId: _project!.id,
+        savedFromCamera: false,
       ),
-      houseGua: reading.houseGua,
+      houseGua: _bazhaiBaseGua,
     );
 
     if (result == null || !mounted) {
+      // User cancelled — cleanup temp
+      _cleanupTemp();
       setState(() => _saving = false);
       return;
     }
 
-    // Save the new record
+    // User confirmed — generate watermarked photo
+    String? finalPhotoPath;
+    try {
+      final meta = bazhaiStarMetaMap[reading.bazhaiStar];
+      final bazhaiText = _bazhaiResolved
+          ? '${reading.bazhaiStar}${meta?.element ?? ''}（${reading.bazhaiRank}）'
+          : '待定';
+
+      finalPhotoPath = await PhotoWatermarkService.addWatermark(
+        sourcePath: tempPath,
+        headingText: dirText,
+        palaceText: '${reading.facingGua}宫',
+        sittingFacingText: reading.sittingFacingText,
+        facingMountainText: reading.facingMountain,
+        sittingMountainText: reading.sittingMountain,
+        projectName: _project?.name ?? '',
+        pointLabel: MeasureTypes.label(result.measureType),
+        pointName: result.measureName,
+        bazhaiText: bazhaiText,
+        takenAt: now,
+        magneticField: null,
+        pitch: _pitch,
+        roll: _roll,
+        deleteSource: true,
+      );
+    } catch (_) {}
+    _tempPhotoPath = null; // temp handled by watermark service
+
+    // Save the record
     final record = CompassRecord.create(
       name: result.measureName.isEmpty
           ? '${MeasureTypes.label(result.measureType)}测点'
@@ -250,30 +374,104 @@ class _CameraAimPageState extends State<CameraAimPage>
       facingMountain: reading.facingMountain,
       palace: '${reading.facingGua}宫',
       mountainText: reading.fullSanyuanText,
-      bazhaiText: bazhaiText,
+      bazhaiText: bazhaiDisplay,
       statusText: '相机测向',
       horizontalAngle: _roll,
       verticalAngle: _pitch,
-      houseGua: reading.houseGua,
-      projectId: widget.project?.id,
+      houseGua: _bazhaiBaseGua,
+      projectId: _project!.id,
       measureType: result.measureType,
       measureName: result.measureName,
       spaceName: result.spaceName,
       note: result.note,
-      photoPath: photoPath,
+      photoPath: finalPhotoPath,
       photoTakenAt: now,
       savedPitch: _pitch,
       savedRoll: _roll,
-      savedFromCamera: photoPath != null,
+      savedFromCamera: finalPhotoPath != null,
     );
     await _storage.addRecord(record);
 
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('测点已保存${photoPath != null ? '（含现场照片）' : ''}')),
+      SnackBar(
+        content: Text(
+          '测点已保存${finalPhotoPath != null ? '（含带水印照片）' : '（照片保存失败）'}',
+        ),
+      ),
     );
     Navigator.pop(context, record);
+  }
+
+  Future<void> _saveWithoutPhoto() async {
+    final reading = _buildReading();
+    final dirText = _directionText();
+    final bazhaiDisplay = _bazhaiResolved
+        ? '${reading.bazhaiStar}${bazhaiStarMetaMap[reading.bazhaiStar]?.element ?? ''}（${reading.bazhaiRank}）'
+        : '待定';
+
+    final result = await showMeasurePointFormSheet(
+      context: context,
+      initialRecord: CompassRecord.create(
+        name: '',
+        heading: _heading,
+        directionText: dirText,
+        sittingFacingText: reading.sittingFacingText,
+        sittingMountain: reading.sittingMountain,
+        facingMountain: reading.facingMountain,
+        palace: '${reading.facingGua}宫',
+        mountainText: reading.fullSanyuanText,
+        bazhaiText: bazhaiDisplay,
+        statusText: '相机测向',
+        horizontalAngle: _roll,
+        verticalAngle: _pitch,
+        houseGua: _bazhaiBaseGua,
+        projectId: _project!.id,
+        savedFromCamera: false,
+      ),
+      houseGua: _bazhaiBaseGua,
+    );
+
+    if (result == null || !mounted) return;
+
+    final record = CompassRecord.create(
+      name: result.measureName.isEmpty
+          ? '${MeasureTypes.label(result.measureType)}测点'
+          : result.measureName,
+      heading: _heading,
+      directionText: dirText,
+      sittingFacingText: reading.sittingFacingText,
+      sittingMountain: reading.sittingMountain,
+      facingMountain: reading.facingMountain,
+      palace: '${reading.facingGua}宫',
+      mountainText: reading.fullSanyuanText,
+      bazhaiText: bazhaiDisplay,
+      statusText: '相机测向',
+      horizontalAngle: _roll,
+      verticalAngle: _pitch,
+      houseGua: _bazhaiBaseGua,
+      projectId: _project!.id,
+      measureType: result.measureType,
+      measureName: result.measureName,
+      spaceName: result.spaceName,
+      note: result.note,
+      savedFromCamera: false,
+    );
+    await _storage.addRecord(record);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('测点已保存（无照片）')),
+    );
+    Navigator.pop(context, record);
+  }
+
+  void _cleanupTemp() {
+    if (_tempPhotoPath != null) {
+      try { File(_tempPhotoPath!).delete(); } catch (_) {}
+      _tempPhotoPath = null;
+    }
   }
 
   Future<bool?> _showPhotoFailedDialog() {
@@ -297,16 +495,42 @@ class _CameraAimPageState extends State<CameraAimPage>
   }
 
   // ============================================================
+  // Bazhai display
+  // ============================================================
+
+  String _bazhaiDisplayText() {
+    if (!_bazhaiResolved) return '八宅：待定';
+    final reading = _buildReading();
+    final meta = bazhaiStarMetaMap[reading.bazhaiStar];
+    return '八宅：${reading.bazhaiStar}${meta?.element ?? ''}（${reading.bazhaiRank}）';
+  }
+
+  Color? _bazhaiColor() {
+    if (!_bazhaiResolved) return const Color(0xFFFFD54F);
+    final reading = _buildReading();
+    final meta = bazhaiStarMetaMap[reading.bazhaiStar];
+    return meta?.isGood == true
+        ? const Color(0xFF66BB6A)
+        : const Color(0xFFEF5350);
+  }
+
+  // ============================================================
   // Build
   // ============================================================
 
   @override
   Widget build(BuildContext context) {
+    if (!_projectChecked) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview
           if (_cameraInitialized && _cameraController != null)
             SizedBox.expand(
               child: CameraPreview(_cameraController!),
@@ -318,7 +542,6 @@ class _CameraAimPageState extends State<CameraAimPage>
               child: CircularProgressIndicator(color: Colors.white),
             ),
 
-          // Crosshair + overlays
           if (_cameraInitialized || _cameraError != null)
             ..._buildOverlays(),
         ],
@@ -354,10 +577,9 @@ class _CameraAimPageState extends State<CameraAimPage>
     final sectorKey = DirectionSector.sector8FromHeading(_heading);
     final palaceLabel = DirectionSector.sectorGuaPalaceLabel(sectorKey);
     final dirLabel = DirectionSector.shortSector8Label(sectorKey);
-    final meta = bazhaiStarMetaMap[reading.bazhaiStar];
-    final bazhaiText =
-        '${reading.bazhaiStar}${meta?.element ?? ''}（${reading.bazhaiRank}）';
     final sitingText = reading.sittingFacingText;
+    final bazhaiDisplay = _bazhaiDisplayText();
+    final bazhaiColor = _bazhaiColor();
 
     return [
       // Top bar
@@ -371,15 +593,25 @@ class _CameraAimPageState extends State<CameraAimPage>
                 onPressed: () => Navigator.pop(context),
               ),
               const Spacer(),
+              // Lens switch button
+              if (_backCameras.length > 1)
+                IconButton(
+                  icon: const Icon(Icons.flip_camera_android,
+                      color: Colors.white),
+                  onPressed: _switchCamera,
+                  tooltip: '切换镜头',
+                ),
+              const SizedBox(width: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black38,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  '相机测向',
-                  style: TextStyle(color: Colors.white, fontSize: 13),
+                child: Text(
+                  _project?.name ?? '相机测向',
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -390,10 +622,7 @@ class _CameraAimPageState extends State<CameraAimPage>
       // Crosshair (center)
       CustomPaint(
         size: Size.infinite,
-        painter: _CrosshairPainter(
-          pitch: _pitch,
-          roll: _roll,
-        ),
+        painter: _CrosshairPainter(pitch: _pitch, roll: _roll),
       ),
 
       // Heading info (center-top area)
@@ -404,44 +633,33 @@ class _CameraAimPageState extends State<CameraAimPage>
         child: IgnorePointer(
           child: Column(
             children: [
-              // Big heading
               Text(
                 dirText,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 36,
                   fontWeight: FontWeight.w900,
-                  shadows: [
-                    Shadow(color: Colors.black54, blurRadius: 8),
-                  ],
+                  shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
                 ),
               ),
               const SizedBox(height: 4),
-              // Palace + sitting
               Text(
                 '$palaceLabel（$dirLabel）｜$sitingText',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  shadows: [
-                    Shadow(color: Colors.black54, blurRadius: 6),
-                  ],
+                  shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
                 ),
               ),
               const SizedBox(height: 2),
-              // Bazhai
               Text(
-                bazhaiText,
+                bazhaiDisplay,
                 style: TextStyle(
-                  color: meta?.isGood == true
-                      ? const Color(0xFF66BB6A)
-                      : const Color(0xFFEF5350),
+                  color: bazhaiColor,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  shadows: const [
-                    Shadow(color: Colors.black54, blurRadius: 6),
-                  ],
+                  shadows: const [Shadow(color: Colors.black54, blurRadius: 6)],
                 ),
               ),
             ],
@@ -481,9 +699,7 @@ class _CameraAimPageState extends State<CameraAimPage>
                             height: 54,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: _capturing
-                                  ? Colors.grey
-                                  : Colors.white,
+                              color: Colors.white,
                               border: Border.all(
                                 color: Colors.black26,
                                 width: 2,
@@ -512,10 +728,7 @@ class _CameraAimPageState extends State<CameraAimPage>
           child: Center(
             child: Text(
               _capturing ? '处理中…' : '将十字线对准目标中心',
-              style: const TextStyle(
-                color: Colors.white60,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.white60, fontSize: 12),
             ),
           ),
         ),
@@ -540,16 +753,12 @@ class _CrosshairPainter extends CustomPainter {
     final len = math.min(size.width, size.height) * 0.15;
     final gap = 12.0;
 
-    // Color based on tilt
     final tiltQuality = (pitch.abs() + roll.abs()) / 2;
-    Color color;
-    if (tiltQuality < 15) {
-      color = Colors.white;
-    } else if (tiltQuality < 30) {
-      color = Colors.yellowAccent;
-    } else {
-      color = Colors.redAccent;
-    }
+    final color = tiltQuality < 15
+        ? Colors.white
+        : tiltQuality < 30
+            ? Colors.yellowAccent
+            : Colors.redAccent;
 
     final paint = Paint()
       ..color = color.withValues(alpha: 0.85)
@@ -561,38 +770,21 @@ class _CrosshairPainter extends CustomPainter {
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
-    void drawLine(Offset from, Offset to) {
+    void draw(Offset from, Offset to) {
       canvas.drawLine(from, to, shadowPaint);
       canvas.drawLine(from, to, paint);
     }
 
-    // Vertical line (top)
-    drawLine(
-      Offset(center.dx, center.dy - gap),
-      Offset(center.dx, center.dy - len),
-    );
-    // Vertical line (bottom)
-    drawLine(
-      Offset(center.dx, center.dy + gap),
-      Offset(center.dx, center.dy + len),
-    );
-    // Horizontal line (left)
-    drawLine(
-      Offset(center.dx - gap, center.dy),
-      Offset(center.dx - len, center.dy),
-    );
-    // Horizontal line (right)
-    drawLine(
-      Offset(center.dx + gap, center.dy),
-      Offset(center.dx + len, center.dy),
-    );
+    draw(Offset(center.dx, center.dy - gap),
+        Offset(center.dx, center.dy - len));
+    draw(Offset(center.dx, center.dy + gap),
+        Offset(center.dx, center.dy + len));
+    draw(Offset(center.dx - gap, center.dy),
+        Offset(center.dx - len, center.dy));
+    draw(Offset(center.dx + gap, center.dy),
+        Offset(center.dx + len, center.dy));
 
-    // Center dot
-    canvas.drawCircle(
-      center,
-      3.0,
-      Paint()..color = color,
-    );
+    canvas.drawCircle(center, 3.0, Paint()..color = color);
   }
 
   @override

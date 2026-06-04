@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -51,6 +53,71 @@ class _MeasurementProjectDetailPageState
       _project = updated ?? _project!;
       _loading = false;
     });
+  }
+
+  String get _projectBaseGua {
+    final base = BaZhaiBaseResolver.resolveBasePalace(
+      project: _project!,
+      records: _points,
+    );
+    return base ?? '乾';
+  }
+
+  Future<void> _onEditPoint(CompassRecord point) async {
+    final result = await showMeasurePointFormSheet(
+      context: context,
+      initialRecord: point,
+      houseGua: _projectBaseGua,
+      allowDelete: true,
+    );
+    if (result == null || !mounted) return;
+
+    if (result.delete) {
+      await _storage.deleteRecord(point.id);
+    } else {
+      final heading = result.heading ?? point.heading;
+      final updatedRecord = CompassRecord(
+        id: point.id,
+        name: point.name,
+        location: point.location,
+        note: result.note,
+        createdAt: point.createdAt,
+        heading: heading,
+        directionText: point.directionText,
+        sittingFacingText: point.sittingFacingText,
+        sittingMountain: point.sittingMountain,
+        facingMountain: point.facingMountain,
+        palace: point.palace,
+        mountainText: point.mountainText,
+        bazhaiText: point.bazhaiText,
+        statusText: point.statusText,
+        horizontalAngle: point.horizontalAngle,
+        verticalAngle: point.verticalAngle,
+        houseGua: point.houseGua,
+        projectId: point.projectId,
+        measureType: result.measureType,
+        measureName: result.measureName,
+        spaceName: result.spaceName,
+      );
+      await _storage.updateRecord(updatedRecord);
+    }
+
+    final fresh = await _storage.loadRecordsByProject(_project!.id);
+    final recalculated = BaZhaiBaseResolver.recalculateAllPoints(
+      project: _project!,
+      records: fresh,
+    );
+    final allRecords = await _storage.loadRecords();
+    for (final rec in recalculated) {
+      final idx = allRecords.indexWhere((r) => r.id == rec.id);
+      if (idx >= 0) allRecords[idx] = rec;
+    }
+    await _storage.saveRecords(allRecords);
+    await _loadPoints();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.delete ? '已删除测点' : '测点已更新')),
+    );
   }
 
   @override
@@ -392,99 +459,68 @@ class _MeasurementProjectDetailPageState
                       color: AppTheme.textSecondary,
                     ),
                   ),
-                  if (point.photoPath != null)
-                    Row(
-                      children: [
-                        Icon(Icons.image_outlined,
-                            size: 12, color: AppTheme.hintText),
-                        const SizedBox(width: 2),
-                        Text(
-                          '有照片',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.hintText,
-                          ),
-                        ),
-                      ],
-                    ),
                 ],
               ),
             ),
+            if (point.photoPath != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: _buildThumbnail(point.photoPath!),
+              ),
           ],
         ),
       ),
     );
   }
 
-  String get _projectBaseGua {
-    final base = BaZhaiBaseResolver.resolveBasePalace(
-      project: _project!,
-      records: _points,
+  Widget _buildThumbnail(String photoPath) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => _PhotoViewerPage(file: File(photoPath)),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.file(
+          File(photoPath),
+          width: 56,
+          height: 56,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(
+              color: const Color(0xFFECECEC),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.broken_image_outlined,
+                size: 20, color: AppTheme.hintText),
+          ),
+        ),
+      ),
     );
-    return base ?? '乾';
   }
+}
 
-  Future<void> _onEditPoint(CompassRecord point) async {
-    final result = await showMeasurePointFormSheet(
-      context: context,
-      initialRecord: point,
-      houseGua: _projectBaseGua,
-      allowDelete: true,
+class _PhotoViewerPage extends StatelessWidget {
+  final File file;
+  const _PhotoViewerPage({required this.file});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text('现场照片'),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          child: Image.file(file, fit: BoxFit.contain),
+        ),
+      ),
     );
-    if (result == null || !mounted) return;
-
-    // Apply the edit/delete to the single point first
-    if (result.delete) {
-      await _storage.deleteRecord(point.id);
-    } else {
-      final heading = result.heading ?? point.heading;
-      final updatedRecord = CompassRecord(
-        id: point.id,
-        name: point.name,
-        location: point.location,
-        note: result.note,
-        createdAt: point.createdAt,
-        heading: heading,
-        directionText: point.directionText,
-        sittingFacingText: point.sittingFacingText,
-        sittingMountain: point.sittingMountain,
-        facingMountain: point.facingMountain,
-        palace: point.palace,
-        mountainText: point.mountainText,
-        bazhaiText: point.bazhaiText,
-        statusText: point.statusText,
-        horizontalAngle: point.horizontalAngle,
-        verticalAngle: point.verticalAngle,
-        houseGua: point.houseGua,
-        projectId: point.projectId,
-        measureType: result.measureType,
-        measureName: result.measureName,
-        spaceName: result.spaceName,
-      );
-      await _storage.updateRecord(updatedRecord);
-    }
-
-    // Reload fresh records from storage
-    final fresh = await _storage.loadRecordsByProject(_project!.id);
-
-    // Recalculate ALL project points based on current base palace
-    final recalculated = BaZhaiBaseResolver.recalculateAllPoints(
-      project: _project!,
-      records: fresh,
-    );
-
-    // Save all recalculated records
-    final allRecords = await _storage.loadRecords();
-    for (final rec in recalculated) {
-      final idx = allRecords.indexWhere((r) => r.id == rec.id);
-      if (idx >= 0) allRecords[idx] = rec;
-    }
-    await _storage.saveRecords(allRecords);
-
-    await _loadPoints();
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(result.delete ? '已删除测点' : '测点已更新')));
   }
 }

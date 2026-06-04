@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
@@ -62,7 +63,7 @@ class PlateSummaryCard extends StatelessWidget {
                 entry.value.measureName?.trim().isNotEmpty == true
                     ? entry.value.measureName!.trim()
                     : typeLabel;
-            return _buildRow(entry.key, info, typeLabel, name);
+            return _buildRow(context, entry.key, info, typeLabel, name);
           }),
           const SizedBox(height: 6),
           const Text(
@@ -107,7 +108,7 @@ class PlateSummaryCard extends StatelessWidget {
     return DirectionSector.mountainFromHeading(sittingDeg);
   }
 
-  Widget _buildRow(int index, PlateRecordInfo info, String typeLabel,
+  Widget _buildRow(BuildContext ctx, int index, PlateRecordInfo info, String typeLabel,
       String name) {
     final isEven = index.isEven;
     final facing = info.mountainLabel;
@@ -199,9 +200,57 @@ class PlateSummaryCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (info.record.photoPath != null)
+              _buildSmallThumbnail(ctx, info.record.photoPath!),
             const Icon(Icons.chevron_right,
                 size: 18, color: AppTheme.hintText),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallThumbnail(BuildContext ctx, String photoPath) {
+    final file = File(photoPath);
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: GestureDetector(
+        onTap: () {
+          if (file.existsSync()) {
+            Navigator.push(
+              ctx,
+              MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  backgroundColor: Colors.black,
+                  appBar: AppBar(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    title: const Text('现场照片'),
+                  ),
+                  body: Center(
+                    child: InteractiveViewer(
+                      child: Image.file(file, fit: BoxFit.contain),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.file(
+            file,
+            width: 44,
+            height: 44,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              width: 44, height: 44,
+              color: const Color(0xFFECECEC),
+              child: const Icon(Icons.broken_image_outlined,
+                  size: 16, color: AppTheme.hintText),
+            ),
+          ),
         ),
       ),
     );

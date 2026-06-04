@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -125,8 +126,114 @@ class CompassRecordDetailPage extends StatelessWidget {
                 ),
               ),
             ),
+            // ---- Photo section ----
+            if (record.photoPath != null) ...[
+              const SizedBox(height: 16),
+              _buildPhotoSection(context),
+            ] else ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.cardBorder),
+                ),
+                child: const Text(
+                  '暂无现场照片',
+                  style: TextStyle(
+                    color: AppTheme.textHint,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoSection(BuildContext ctx) {
+    final file = File(record.photoPath!);
+    final timeStr = DateFormat('yyyy-MM-dd HH:mm').format(record.createdAt);
+    return GestureDetector(
+      onTap: () => _showPhotoPreview(ctx, file),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.cardBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(14, 12, 14, 0),
+              child: Text(
+                '现场照片',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textTitle,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                file,
+                width: double.infinity,
+                height: 240,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 100,
+                  color: const Color(0xFFECECEC),
+                  child: const Center(
+                    child: Text('照片加载失败',
+                        style: TextStyle(color: AppTheme.hintText)),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+              child: Text(
+                '拍摄时间：$timeStr\n测量方位：${record.directionText}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPhotoPreview(BuildContext ctx, File file) {
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: const Text('现场照片'),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: Image.file(file, fit: BoxFit.contain),
+            ),
+          ),
         ),
       ),
     );

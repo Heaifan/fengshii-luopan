@@ -14,6 +14,7 @@ import '../../fengshui/bazhai_you_nian_table.dart';
 import '../../fengshui/compass_math.dart';
 import '../../fengshui/compass_reading_builder.dart';
 import '../../fengshui/direction_sector.dart';
+import '../../fengshui/measure_hints.dart';
 import '../projects/new_measurement_project_page.dart';
 import '../projects/widgets/measure_point_form_sheet.dart';
 import '../projects/widgets/project_picker_sheet.dart';
@@ -53,6 +54,7 @@ class _CameraAimPageState extends State<CameraAimPage>
   bool _capturing = false;
   bool _saving = false;
   String? _tempPhotoPath;
+  String _selectedType = 'entranceDoor';
 
   // Project / Bazhai state
   MeasurementProject? _project;
@@ -387,6 +389,7 @@ class _CameraAimPageState extends State<CameraAimPage>
         verticalAngle: _pitch,
         houseGua: _bazhaiBaseGua,
         projectId: _project!.id,
+        measureType: _selectedType,
         savedFromCamera: false,
       ),
       houseGua: _bazhaiBaseGua,
@@ -493,6 +496,7 @@ class _CameraAimPageState extends State<CameraAimPage>
         verticalAngle: _pitch,
         houseGua: _bazhaiBaseGua,
         projectId: _project!.id,
+        measureType: _selectedType,
         savedFromCamera: false,
       ),
       houseGua: _bazhaiBaseGua,
@@ -636,6 +640,45 @@ class _CameraAimPageState extends State<CameraAimPage>
     );
   }
 
+  Widget _buildTypeSelector() {
+    const types = ['entranceDoor', 'roomDoor', 'balcony', 'window', 'bed'];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: types.map((t) {
+          final selected = t == _selectedType;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedType = t),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: selected ? Colors.white : Colors.black38,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: selected ? Colors.white : Colors.white24,
+                    width: selected ? 1.5 : 0.5,
+                  ),
+                ),
+                child: Text(
+                  MeasureTypes.label(t),
+                  style: TextStyle(
+                    color: selected ? Colors.black87 : Colors.white70,
+                    fontSize: 12,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   List<Widget> _buildOverlays() {
     final reading = _buildReading();
     final dirText = _directionText();
@@ -704,14 +747,26 @@ class _CameraAimPageState extends State<CameraAimPage>
         painter: _CrosshairPainter(pitch: _pitch, roll: _roll),
       ),
 
-      // Heading info (center-top area)
+      // Heading info + type selector (upper area)
       Positioned(
         left: 0,
         right: 0,
-        top: MediaQuery.of(context).size.height * 0.22,
+        top: MediaQuery.of(context).size.height * 0.14,
         child: IgnorePointer(
           child: Column(
             children: [
+              // Measurement principle
+              Text(
+                MeasureHints.principle,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Big heading
               Text(
                 dirText,
                 style: const TextStyle(
@@ -722,6 +777,7 @@ class _CameraAimPageState extends State<CameraAimPage>
                 ),
               ),
               const SizedBox(height: 4),
+              // Palace + sitting
               Text(
                 '$palaceLabel（$dirLabel）｜$sitingText',
                 style: const TextStyle(
@@ -732,6 +788,7 @@ class _CameraAimPageState extends State<CameraAimPage>
                 ),
               ),
               const SizedBox(height: 2),
+              // Bazhai
               Text(
                 bazhaiDisplay,
                 style: TextStyle(
@@ -741,9 +798,49 @@ class _CameraAimPageState extends State<CameraAimPage>
                   shadows: const [Shadow(color: Colors.black54, blurRadius: 6)],
                 ),
               ),
+              const SizedBox(height: 10),
+              // Context label + hint
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black45,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '当前：${MeasureHints.shortContext(_selectedType)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      MeasureHints.hintFor(_selectedType),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
+      ),
+
+      // Type selector (above capture button)
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: MediaQuery.of(context).size.height * 0.16,
+        child: _buildTypeSelector(),
       ),
 
       // Capture button (bottom)

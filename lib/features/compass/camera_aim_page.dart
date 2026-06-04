@@ -594,17 +594,11 @@ class _CameraAimPageState extends State<CameraAimPage>
 
   @override
   Widget build(BuildContext context) {
-    if (!_projectChecked) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
-      );
-    }
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          // Camera preview (or loading/error)
           if (_cameraInitialized && _cameraController != null)
             SizedBox.expand(
               child: CameraPreview(_cameraController!),
@@ -616,6 +610,22 @@ class _CameraAimPageState extends State<CameraAimPage>
               child: CircularProgressIndicator(color: Colors.white),
             ),
 
+          // Close button — always on top
+          if (_projectChecked)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+            ),
+
+          // Overlays (crosshair, heading, etc.)
           if (_cameraInitialized || _cameraError != null)
             ..._buildOverlays(),
         ],
@@ -695,18 +705,13 @@ class _CameraAimPageState extends State<CameraAimPage>
     final bazhaiColor = _bazhaiColor();
 
     return [
-      // Top bar
+      // Top right: lens switch + project badge
       SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
           child: Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
               const Spacer(),
-              // Lens switch button
               if (_backCameras.length > 1)
                 IconButton(
                   icon: const Icon(Icons.flip_camera_android,
@@ -715,7 +720,6 @@ class _CameraAimPageState extends State<CameraAimPage>
                   tooltip: '切换镜头',
                 ),
               const SizedBox(width: 4),
-              // 定伏位 badge or project name
               if (_needsBasePalace)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

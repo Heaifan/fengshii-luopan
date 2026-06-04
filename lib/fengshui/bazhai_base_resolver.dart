@@ -141,6 +141,13 @@ class BaZhaiBaseResolver {
           measureType: r.measureType,
           measureName: r.measureName,
           spaceName: r.spaceName,
+          // Preserve photo & camera fields
+          photoPath: r.photoPath,
+          photoTakenAt: r.photoTakenAt,
+          savedPitch: r.savedPitch,
+          savedRoll: r.savedRoll,
+          savedMagneticField: r.savedMagneticField,
+          savedFromCamera: r.savedFromCamera,
         );
       }
 
@@ -176,6 +183,13 @@ class BaZhaiBaseResolver {
         measureType: r.measureType,
         measureName: r.measureName,
         spaceName: r.spaceName,
+        // Preserve photo & camera fields
+        photoPath: r.photoPath,
+        photoTakenAt: r.photoTakenAt,
+        savedPitch: r.savedPitch,
+        savedRoll: r.savedRoll,
+        savedMagneticField: r.savedMagneticField,
+        savedFromCamera: r.savedFromCamera,
       );
     }).toList();
   }

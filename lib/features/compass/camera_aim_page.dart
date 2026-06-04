@@ -461,15 +461,18 @@ class _CameraAimPageState extends State<CameraAimPage>
     await _storage.addRecord(record);
 
     if (!mounted) return;
-    setState(() => _saving = false);
+    setState(() {
+      _saving = false;
+      _tempPhotoPath = null;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '测点已保存${finalPhotoPath != null ? '（含带水印照片）' : '（照片保存失败）'}',
+          '已保存${_selectedType}测点${finalPhotoPath != null ? '（含照片）' : ''}',
         ),
+        duration: const Duration(seconds: 2),
       ),
     );
-    Navigator.pop(context, record);
   }
 
   Future<void> _saveWithoutPhoto() async {
@@ -531,9 +534,11 @@ class _CameraAimPageState extends State<CameraAimPage>
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('测点已保存（无照片）')),
+      const SnackBar(
+        content: Text('测点已保存（无照片）'),
+        duration: Duration(seconds: 2),
+      ),
     );
-    Navigator.pop(context, record);
   }
 
   void _cleanupTemp() {

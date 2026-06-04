@@ -293,33 +293,44 @@ class _SimpleProjectPlatePageState
 
     if (result.delete) {
       await _storage.deleteRecord(record.id);
-    } else {
-      final heading = result.heading ?? record.heading;
-      final updated = CompassRecord(
-        id: record.id,
-        name: record.name,
-        location: record.location,
-        note: result.note,
-        createdAt: record.createdAt,
-        heading: heading,
-        directionText: record.directionText,
-        sittingFacingText: record.sittingFacingText,
-        sittingMountain: record.sittingMountain,
-        facingMountain: record.facingMountain,
-        palace: record.palace,
-        mountainText: record.mountainText,
-        bazhaiText: record.bazhaiText,
-        statusText: record.statusText,
-        horizontalAngle: record.horizontalAngle,
-        verticalAngle: record.verticalAngle,
-        houseGua: record.houseGua,
-        projectId: record.projectId,
-        measureType: result.measureType,
-        measureName: result.measureName,
-        spaceName: result.spaceName,
+      await _loadRecords();
+      if (!mounted) return;
+      setState(() {
+        _detailMode = PlateDetailMode.summary;
+        _selectedRecord = null;
+        _selectedSector = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已删除测点')),
       );
-      await _storage.updateRecord(updated);
+      return;
     }
+
+    final heading = result.heading ?? record.heading;
+    final updated = CompassRecord(
+      id: record.id,
+      name: record.name,
+      location: record.location,
+      note: result.note,
+      createdAt: record.createdAt,
+      heading: heading,
+      directionText: record.directionText,
+      sittingFacingText: record.sittingFacingText,
+      sittingMountain: record.sittingMountain,
+      facingMountain: record.facingMountain,
+      palace: record.palace,
+      mountainText: record.mountainText,
+      bazhaiText: record.bazhaiText,
+      statusText: record.statusText,
+      horizontalAngle: record.horizontalAngle,
+      verticalAngle: record.verticalAngle,
+      houseGua: record.houseGua,
+      projectId: record.projectId,
+      measureType: result.measureType,
+      measureName: result.measureName,
+      spaceName: result.spaceName,
+    );
+    await _storage.updateRecord(updated);
 
     // Batch recalculate ALL points based on current base palace
     final fresh = await _storage.loadRecordsByProject(widget.project.id);
@@ -338,30 +349,20 @@ class _SimpleProjectPlatePageState
 
     if (!mounted) return;
 
-    if (result.delete) {
-      setState(() {
-        _detailMode = PlateDetailMode.summary;
-        _selectedRecord = null;
-        _selectedSector = null;
-      });
-    } else {
-      final reloaded = await _storage.loadRecordsByProject(
-          widget.project.id);
-      final updatedRecord = reloaded.where(
-          (r) => r.id == record.id).firstOrNull;
-      setState(() {
-        _detailMode = PlateDetailMode.point;
-        _selectedRecord = updatedRecord;
-        _selectedSector =
-            DirectionSector.sector8FromHeading(record.heading);
-      });
-    }
+    final reloaded = await _storage.loadRecordsByProject(
+        widget.project.id);
+    final updatedRecord = reloaded.where(
+        (r) => r.id == record.id).firstOrNull;
+    setState(() {
+      _detailMode = PlateDetailMode.point;
+      _selectedRecord = updatedRecord;
+      _selectedSector =
+          DirectionSector.sector8FromHeading(record.heading);
+    });
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result.delete ? '已删除测点' : '测点已更新'),
-      ),
+      const SnackBar(content: Text('测点已更新')),
     );
   }
 

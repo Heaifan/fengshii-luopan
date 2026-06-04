@@ -74,33 +74,39 @@ class _MeasurementProjectDetailPageState
 
     if (result.delete) {
       await _storage.deleteRecord(point.id);
-    } else {
-      final heading = result.heading ?? point.heading;
-      final updatedRecord = CompassRecord(
-        id: point.id,
-        name: point.name,
-        location: point.location,
-        note: result.note,
-        createdAt: point.createdAt,
-        heading: heading,
-        directionText: point.directionText,
-        sittingFacingText: point.sittingFacingText,
-        sittingMountain: point.sittingMountain,
-        facingMountain: point.facingMountain,
-        palace: point.palace,
-        mountainText: point.mountainText,
-        bazhaiText: point.bazhaiText,
-        statusText: point.statusText,
-        horizontalAngle: point.horizontalAngle,
-        verticalAngle: point.verticalAngle,
-        houseGua: point.houseGua,
-        projectId: point.projectId,
-        measureType: result.measureType,
-        measureName: result.measureName,
-        spaceName: result.spaceName,
+      await _loadPoints();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已删除测点')),
       );
-      await _storage.updateRecord(updatedRecord);
+      return;
     }
+
+    final heading = result.heading ?? point.heading;
+    final updatedRecord = CompassRecord(
+      id: point.id,
+      name: point.name,
+      location: point.location,
+      note: result.note,
+      createdAt: point.createdAt,
+      heading: heading,
+      directionText: point.directionText,
+      sittingFacingText: point.sittingFacingText,
+      sittingMountain: point.sittingMountain,
+      facingMountain: point.facingMountain,
+      palace: point.palace,
+      mountainText: point.mountainText,
+      bazhaiText: point.bazhaiText,
+      statusText: point.statusText,
+      horizontalAngle: point.horizontalAngle,
+      verticalAngle: point.verticalAngle,
+      houseGua: point.houseGua,
+      projectId: point.projectId,
+      measureType: result.measureType,
+      measureName: result.measureName,
+      spaceName: result.spaceName,
+    );
+    await _storage.updateRecord(updatedRecord);
 
     final fresh = await _storage.loadRecordsByProject(_project!.id);
     final recalculated = BaZhaiBaseResolver.recalculateAllPoints(
@@ -116,7 +122,7 @@ class _MeasurementProjectDetailPageState
     await _loadPoints();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.delete ? '已删除测点' : '测点已更新')),
+      const SnackBar(content: Text('测点已更新')),
     );
   }
 

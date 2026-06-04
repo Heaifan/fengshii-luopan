@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
@@ -164,6 +165,12 @@ class TiandirenDetailCard extends StatelessWidget {
             // ---- Conclusion area ----
             _buildConclusionArea(relation, isAuspicious),
 
+            // ---- Photo (if exists) ----
+            if (record.photoPath != null) ...[
+              const SizedBox(height: 10),
+              _buildPhotoSection(context),
+            ],
+
             const SizedBox(height: 10),
             const Text(
               '注：测点为方位示意，不代表实际距离比例。',
@@ -211,6 +218,71 @@ class TiandirenDetailCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoSection(BuildContext ctx) {
+    return GestureDetector(
+      onTap: () => _showPhotoPreview(ctx),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7E6),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE0C98A)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.image, color: AppTheme.neutralText, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '现场照片',
+                style: TextStyle(
+                  color: AppTheme.neutralText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 18, color: AppTheme.hintText),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPhotoPreview(BuildContext ctx) {
+    if (record.photoPath == null) return;
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: const Text('现场照片'),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: Image.file(
+                File(record.photoPath!),
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                    SizedBox(height: 8),
+                    Text('照片加载失败', style: TextStyle(color: Colors.white54)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

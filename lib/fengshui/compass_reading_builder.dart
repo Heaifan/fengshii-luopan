@@ -17,6 +17,7 @@ class CompassReading {
   final String bazhaiRank;
   final bool isAuspicious;
   final String sittingFacingText;
+  final String houseGua;
 
   const CompassReading({
     required this.facingDegree,
@@ -31,6 +32,7 @@ class CompassReading {
     required this.bazhaiRank,
     required this.isAuspicious,
     required this.sittingFacingText,
+    required this.houseGua,
   });
 }
 
@@ -72,6 +74,7 @@ class CompassReadingBuilder {
       bazhaiRank: bazhai.rank,
       isAuspicious: bazhai.isAuspicious,
       sittingFacingText: '坐${sitting.mountain}向${facing.mountain}',
+      houseGua: houseGua,
     );
   }
 }

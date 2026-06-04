@@ -27,6 +27,14 @@ class CompassRecord {
   final String? measureName;
   final String? spaceName;
 
+  // V0.9.1: Camera & photo fields
+  final String? photoPath;
+  final DateTime? photoTakenAt;
+  final double? savedPitch;
+  final double? savedRoll;
+  final double? savedMagneticField;
+  final bool savedFromCamera;
+
   const CompassRecord({
     required this.id,
     required this.name,
@@ -49,6 +57,13 @@ class CompassRecord {
     this.measureType = 'other',
     this.measureName,
     this.spaceName,
+    // V0.9.1 fields
+    this.photoPath,
+    this.photoTakenAt,
+    this.savedPitch,
+    this.savedRoll,
+    this.savedMagneticField,
+    this.savedFromCamera = false,
   });
 
   CompassRecord copyWith({
@@ -56,6 +71,12 @@ class CompassRecord {
     String? measureName,
     String? spaceName,
     String? note,
+    String? photoPath,
+    DateTime? photoTakenAt,
+    double? savedPitch,
+    double? savedRoll,
+    double? savedMagneticField,
+    bool? savedFromCamera,
   }) {
     return CompassRecord(
       id: id,
@@ -79,6 +100,12 @@ class CompassRecord {
       measureType: measureType ?? this.measureType,
       measureName: measureName ?? this.measureName,
       spaceName: spaceName ?? this.spaceName,
+      photoPath: photoPath ?? this.photoPath,
+      photoTakenAt: photoTakenAt ?? this.photoTakenAt,
+      savedPitch: savedPitch ?? this.savedPitch,
+      savedRoll: savedRoll ?? this.savedRoll,
+      savedMagneticField: savedMagneticField ?? this.savedMagneticField,
+      savedFromCamera: savedFromCamera ?? this.savedFromCamera,
     );
   }
 
@@ -102,6 +129,13 @@ class CompassRecord {
     String measureType = 'other',
     String? measureName,
     String? spaceName,
+    // V0.9.1
+    String? photoPath,
+    DateTime? photoTakenAt,
+    double? savedPitch,
+    double? savedRoll,
+    double? savedMagneticField,
+    bool savedFromCamera = false,
   }) {
     return CompassRecord(
       id: const Uuid().v4(),
@@ -125,6 +159,12 @@ class CompassRecord {
       measureType: measureType,
       measureName: measureName,
       spaceName: spaceName,
+      photoPath: photoPath,
+      photoTakenAt: photoTakenAt,
+      savedPitch: savedPitch,
+      savedRoll: savedRoll,
+      savedMagneticField: savedMagneticField,
+      savedFromCamera: savedFromCamera,
     );
   }
 
@@ -150,6 +190,12 @@ class CompassRecord {
         'measureType': measureType,
         'measureName': measureName,
         'spaceName': spaceName,
+        'photoPath': photoPath,
+        'photoTakenAt': photoTakenAt?.toIso8601String(),
+        'savedPitch': savedPitch,
+        'savedRoll': savedRoll,
+        'savedMagneticField': savedMagneticField,
+        'savedFromCamera': savedFromCamera,
       };
 
   factory CompassRecord.fromJson(Map<String, dynamic> json) {
@@ -175,6 +221,14 @@ class CompassRecord {
       measureType: json['measureType'] as String? ?? 'other',
       measureName: json['measureName'] as String?,
       spaceName: json['spaceName'] as String?,
+      photoPath: json['photoPath'] as String?,
+      photoTakenAt: json['photoTakenAt'] != null
+          ? DateTime.tryParse(json['photoTakenAt'] as String)
+          : null,
+      savedPitch: (json['savedPitch'] as num?)?.toDouble(),
+      savedRoll: (json['savedRoll'] as num?)?.toDouble(),
+      savedMagneticField: (json['savedMagneticField'] as num?)?.toDouble(),
+      savedFromCamera: json['savedFromCamera'] as bool? ?? false,
     );
   }
 }

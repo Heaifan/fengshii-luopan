@@ -16,6 +16,7 @@ import 'luopan_dial.dart';
 import 'tilt_service.dart';
 import 'bubble_indicator.dart';
 import 'l_type_level_indicator.dart';
+import 'camera_aim_page.dart';
 import '../../app/theme.dart';
 import '../../fengshui/bazhai_you_nian_table.dart';
 import '../records/compass_records_page.dart';
@@ -1171,6 +1172,20 @@ class _CompassPageState extends State<CompassPage> {
         backgroundColor: const Color(0xFFc8b898),
         foregroundColor: const Color(0xFF333333),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.camera_alt_outlined),
+            tooltip: '相机测向',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CameraAimPage(
+                    project: widget.activeProject,
+                  ),
+                ),
+              );
+            },
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (v) {

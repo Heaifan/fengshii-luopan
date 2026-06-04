@@ -151,13 +151,25 @@ class PlateSummaryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '$typeLabel · $name',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.bodyText,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '$typeLabel · $name',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.bodyText,
+                          ),
+                        ),
+                      ),
+                      if (info.record.photoPath != null)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Icon(Icons.image_outlined,
+                              size: 14, color: AppTheme.hintText),
+                        ),
+                    ],
                   ),
                   Text(
                     info.palaceLine,

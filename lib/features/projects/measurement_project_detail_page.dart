@@ -392,6 +392,21 @@ class _MeasurementProjectDetailPageState
                       color: AppTheme.textSecondary,
                     ),
                   ),
+                  if (point.photoPath != null)
+                    Row(
+                      children: [
+                        Icon(Icons.image_outlined,
+                            size: 12, color: AppTheme.hintText),
+                        const SizedBox(width: 2),
+                        Text(
+                          '有照片',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.hintText,
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),

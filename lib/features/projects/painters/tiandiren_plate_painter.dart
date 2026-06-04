@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:path_drawing/path_drawing.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../fengshui/direction_sector.dart';
 import '../../../fengshui/mountain_24.dart';
 import '../../../fengshui/bazhai_you_nian_table.dart';
 import '../../../fengshui/measure_type_meaning.dart';
 import '../../../fengshui/palace_element_theme.dart';
-import '../../../data/models/measure_type.dart';
+import '../../../theme/app_svg_icons.dart';
+import '../../../app/theme.dart';
 
 class TiandirenPlatePainter extends CustomPainter {
   final List<CompassRecord> records;
@@ -55,8 +57,8 @@ class TiandirenPlatePainter extends CustomPainter {
   };
 
   static const _selectedGold = Color(0xFFC8922E);
-  static const _auspiciousColor = Color(0xFF2E7D4F);
-  static const _inauspiciousColor = Color(0xFFA13A2A);
+  static const _auspiciousColor = Color(0xFF1E8E3E);
+  static const _inauspiciousColor = Color(0xFFC62828);
   static const _textPrimary = Color(0xFF20160D);
 
   @override
@@ -74,6 +76,17 @@ class TiandirenPlatePainter extends CustomPainter {
   @override
   bool shouldRepaint(TiandirenPlatePainter oldDelegate) => true;
 
+  /// Get the grid bounding rect (the 3×3 square).
+  Rect _gridRect(Offset center, double R) {
+    final halfSide = R * _gridHalfSide;
+    return Rect.fromLTWH(
+      center.dx - halfSide,
+      center.dy - halfSide,
+      halfSide * 2,
+      halfSide * 2,
+    );
+  }
+
   // ============================================================
   // Background
   // ============================================================
@@ -81,12 +94,12 @@ class TiandirenPlatePainter extends CustomPainter {
   void _drawBackground(Canvas canvas, Offset center, double R) {
     canvas.drawCircle(
       center, R,
-      Paint()..color = const Color(0xFFFFFBF0),
+      Paint()..color = AppTheme.cardBg,
     );
     canvas.drawCircle(
       center, R,
       Paint()
-        ..color = const Color(0xFFC9A96A).withValues(alpha: 0.25)
+        ..color = AppTheme.cardBorder.withValues(alpha: 0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
@@ -163,7 +176,7 @@ class TiandirenPlatePainter extends CustomPainter {
 
         final isSelected = selSector != null && sector == selSector;
 
-        // cell background by element
+        // Pure background color — no opacity stacking
         final element = PalaceElementTheme.elementForSector(sector);
         canvas.drawRect(cellRect, Paint()..color = PalaceElementTheme.colorForElement(element));
 
@@ -240,9 +253,18 @@ class TiandirenPlatePainter extends CustomPainter {
   // ============================================================
 
   void _drawPointAnchors(Canvas canvas, Offset center, double R, double s) {
+    final gridRect = _gridRect(center, R);
+
     for (final record in records) {
       final isSelected = selectedRecord?.id == record.id;
-      final pos = _pointPosition(record, center, R);
+      final type = record.measureType;
+
+      Offset pos;
+      if (type == 'entranceDoor') {
+        pos = _entranceDoorPosition(gridRect, center, record.heading);
+      } else {
+        pos = _pointPosition(record, center, R);
+      }
 
       if (isSelected) {
         canvas.drawCircle(pos, 14 * s, Paint()
@@ -254,75 +276,112 @@ class TiandirenPlatePainter extends CustomPainter {
           ..strokeWidth = 2);
       }
 
-      final type = record.measureType;
       if (type == 'entranceDoor' || type == 'roomDoor') {
-        _drawDoorIcon(canvas, pos, isSelected ? 10 * s : 8 * s, type);
+        _drawSvgDoorIcon(canvas, pos, isSelected ? 10 * s : 8 * s, type);
       } else {
         final label = MeasureTypeMeaning.pointShortLabel(
           type: type, measureName: record.measureName,
         );
-        canvas.drawCircle(pos, isSelected ? 10 * s : 8 * s, Paint()..color = const Color(0xFF5A4724));
+        canvas.drawCircle(pos, isSelected ? 10 * s : 8 * s, Paint()..color = AppTheme.pointTagBg);
         _drawCenteredText(canvas, label, pos, 10 * s, FontWeight.bold, Colors.white);
       }
     }
   }
 
-  /// Draw a simplified door icon on the canvas.
-  /// [type] is 'entranceDoor' (双开门) or 'roomDoor' (单开门).
-  void _drawDoorIcon(Canvas canvas, Offset pos, double r, String type) {
+  // ============================================================
+  // Entrance door: ray → grid-edge intersection
+  // ============================================================
+
+  /// Compute the intersection point of the heading ray with the grid square,
+  /// then push outward by a small margin so the icon sits just outside.
+  Offset _entranceDoorPosition(Rect gridRect, Offset center, double heading) {
+    // Plate angle: heading + 90° (same as _pointPosition)
+    final theta = (heading + 90) * math.pi / 180;
+    final dx = math.cos(theta);
+    final dy = math.sin(theta);
+
+    // t values for each of the 4 grid edges
+    final tx = dx > 0
+        ? (gridRect.right - center.dx) / dx
+        : dx < 0
+            ? (gridRect.left - center.dx) / dx
+            : double.infinity;
+
+    final ty = dy > 0
+        ? (gridRect.bottom - center.dy) / dy
+        : dy < 0
+            ? (gridRect.top - center.dy) / dy
+            : double.infinity;
+
+    final t = math.min(tx.abs(), ty.abs());
+
+    // Push outward by ~8% of half-side
+    final outwardOffset = gridRect.width * 0.04;
+
+    return Offset(
+      center.dx + dx * (t + outwardOffset),
+      center.dy + dy * (t + outwardOffset),
+    );
+  }
+
+  // ============================================================
+  // SVG door icon drawing via path_drawing
+  // ============================================================
+
+  void _drawSvgDoorIcon(Canvas canvas, Offset pos, double r, String type) {
     // Background circle
-    final bgPaint = Paint()..color = const Color(0xFF5A4724);
+    final bgPaint = Paint()..color = AppTheme.pointTagBg;
     canvas.drawCircle(pos, r, bgPaint);
 
-    final doorW = r * 0.35;
-    final doorH = r * 1.0;
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final fillPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
-      ..style = PaintingStyle.fill;
+    final iconSize = r * 1.6;
+    final iconRect = Rect.fromCenter(
+      center: pos,
+      width: iconSize,
+      height: iconSize,
+    );
 
-    if (type == 'entranceDoor') {
-      // Double doors: two rectangles side by side with gap
-      final gap = r * 0.08;
-      final leftRect = Rect.fromCenter(
-        center: Offset(pos.dx - doorW * 0.5 - gap * 0.5, pos.dy),
-        width: doorW, height: doorH,
-      );
-      final rightRect = Rect.fromCenter(
-        center: Offset(pos.dx + doorW * 0.5 + gap * 0.5, pos.dy),
-        width: doorW, height: doorH,
-      );
-      canvas.drawRect(leftRect, fillPaint);
-      canvas.drawRect(leftRect, paint);
-      canvas.drawRect(rightRect, fillPaint);
-      canvas.drawRect(rightRect, paint);
-      // Small knob on each door
-      final knobR = r * 0.06;
-      canvas.drawCircle(
-        Offset(pos.dx - gap * 0.5 - doorW * 0.3, pos.dy),
-        knobR, Paint()..color = Colors.white,
-      );
-      canvas.drawCircle(
-        Offset(pos.dx + gap * 0.5 + doorW * 0.3, pos.dy),
-        knobR, Paint()..color = Colors.white,
-      );
-    } else {
-      // Single door: one rectangle on left side
-      final doorRect = Rect.fromCenter(
-        center: Offset(pos.dx - r * 0.15, pos.dy),
-        width: doorW, height: doorH,
-      );
-      canvas.drawRect(doorRect, fillPaint);
-      canvas.drawRect(doorRect, paint);
-      // Knob on right side of door
-      canvas.drawCircle(
-        Offset(pos.dx + r * 0.05, pos.dy),
-        r * 0.06, Paint()..color = Colors.white,
-      );
+    final color = type == 'entranceDoor'
+        ? AppTheme.entranceDoorIcon
+        : AppTheme.roomDoorIcon;
+
+    final paths = type == 'entranceDoor'
+        ? AppSvgIcons.entranceDoorPaths
+        : AppSvgIcons.roomDoorPaths;
+
+    _drawSvgPaths(
+      canvas: canvas,
+      paths: paths,
+      rect: iconRect,
+      color: color,
+    );
+  }
+
+  /// Draw a set of SVG path data into a given rect.
+  void _drawSvgPaths({
+    required Canvas canvas,
+    required List<String> paths,
+    required Rect rect,
+    required Color color,
+  }) {
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = color;
+
+    canvas.save();
+
+    final scale = math.min(rect.width / 1024.0, rect.height / 1024.0);
+    final dx = rect.left + (rect.width - 1024 * scale) / 2;
+    final dy = rect.top + (rect.height - 1024 * scale) / 2;
+
+    canvas.translate(dx, dy);
+    canvas.scale(scale);
+
+    for (final data in paths) {
+      final path = parseSvgPathData(data);
+      canvas.drawPath(path, paint);
     }
+
+    canvas.restore();
   }
 
   // ============================================================
@@ -332,8 +391,8 @@ class TiandirenPlatePainter extends CustomPainter {
   double _radiusFactor(String type) {
     switch (type) {
       case 'door': return 0.48;
-      case 'entranceDoor': return 0.65; // 入户门贴九宫边界
-      case 'roomDoor': return 0.44;     // 房门在内
+      // entranceDoor uses edge-intersection, not radius factor
+      case 'roomDoor': return 0.44;
       case 'balcony': return 0.44;
       case 'window': return 0.40;
       case 'stove': return 0.36;
@@ -378,6 +437,12 @@ class TiandirenPlatePainter extends CustomPainter {
       Size size, List<CompassRecord> records) {
     final center = Offset(size.width / 2, size.height / 2);
     final R = math.min(size.width, size.height) / 2;
-    return records.map((r) => MapEntry(r, _pointPosition(r, center, R))).toList();
+    final gridRect = _gridRect(center, R);
+    return records.map((r) {
+      final pos = r.measureType == 'entranceDoor'
+          ? _entranceDoorPosition(gridRect, center, r.heading)
+          : _pointPosition(r, center, R);
+      return MapEntry(r, pos);
+    }).toList();
   }
 }

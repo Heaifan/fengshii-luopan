@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../data/models/measure_type.dart';
+import '../../../fengshui/direction_sector.dart';
 import '../../../fengshui/five_element_relation.dart';
 import '../utils/plate_record_info.dart';
 import '../utils/plate_record_sorter.dart';
@@ -93,17 +94,25 @@ class PlateSummaryCard extends StatelessWidget {
     final gua = _guaFromPalace(record.palace);
     final starName = _starNameFromBazhai(record.bazhaiText);
     if (gua.isEmpty || starName.isEmpty) {
-      return const Text('星宫：待定',
-          style: TextStyle(fontSize: 11, color: Color(0xFF6B5A44)));
+      return const Text('星与宫：待定',
+          style: TextStyle(fontSize: 11, color: AppTheme.neutralText));
     }
     final r = resolveStarPalaceRelation(palaceGua: gua, starName: starName);
-    return Text('星宫：${r.type}（${r.detail}）',
-        style: const TextStyle(fontSize: 11, color: Color(0xFF6B5A44)));
+    return Text('星与宫：${r.type}（${r.detail}）',
+        style: const TextStyle(fontSize: 11, color: AppTheme.neutralText));
+  }
+
+  String _sittingMountainFromHeading(double heading) {
+    final sittingDeg = (heading + 180) % 360;
+    return DirectionSector.mountainFromHeading(sittingDeg);
   }
 
   Widget _buildRow(int index, PlateRecordInfo info, String typeLabel,
       String name) {
     final isEven = index.isEven;
+    final facing = info.mountainLabel;
+    final sitting = _sittingMountainFromHeading(info.record.heading);
+    final isAuspicious = !info.bazhaiText.contains('凶');
     return GestureDetector(
       onTap: () => onRecordTap(info.record),
       onLongPress: onRecordLongPress != null
@@ -124,7 +133,7 @@ class PlateSummaryCard extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: const Color(0xFF5A4724),
+                color: AppTheme.pointTagBg,
                 borderRadius: BorderRadius.circular(6),
               ),
               alignment: Alignment.center,
@@ -147,14 +156,21 @@ class PlateSummaryCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.bodyText,
                     ),
                   ),
                   Text(
                     info.palaceLine,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.subText,
+                    ),
+                  ),
+                  Text(
+                    '向$facing｜坐$sitting｜${info.yuanLongLabel}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.subText,
                     ),
                   ),
                   Text(
@@ -162,9 +178,9 @@ class PlateSummaryCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: info.bazhaiText.contains('凶')
-                          ? const Color(0xFFA13A2A)
-                          : const Color(0xFF2E7D4F),
+                      color: isAuspicious
+                          ? AppTheme.goodText
+                          : AppTheme.badText,
                     ),
                   ),
                   _buildStarRelation(info.record),
@@ -172,7 +188,7 @@ class PlateSummaryCard extends StatelessWidget {
               ),
             ),
             const Icon(Icons.chevron_right,
-                size: 18, color: AppTheme.textHint),
+                size: 18, color: AppTheme.hintText),
           ],
         ),
       ),

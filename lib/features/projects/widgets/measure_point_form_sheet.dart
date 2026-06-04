@@ -181,7 +181,7 @@ class _MeasurePointFormSheetState
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8, runSpacing: 8,
-                    children: MeasureTypes.all.map((t) {
+                    children: MeasureTypes.selectable.map((t) {
                       final selected = t == _measureType;
                       return ChoiceChip(
                         label: Text(MeasureTypes.label(t),

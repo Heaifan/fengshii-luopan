@@ -18,11 +18,7 @@ class BaZhaiBaseResolver {
     String fallback = '乾',
   }) {
     if (project.baZhaiMode == 'doorPosition') {
-      // Find the first door measurement point (any door type)
-      final door = records.cast<CompassRecord?>().firstWhere(
-        (r) => MeasureTypes.isDoor(r!.measureType),
-        orElse: () => null,
-      );
+      final door = resolveBaseDoor(records);
       if (door == null) return null; // no door point yet
       final sector = DirectionSector.sector8FromHeading(door.heading);
       final gua = DirectionSector.sectorToGua(sector);
@@ -31,6 +27,20 @@ class BaZhaiBaseResolver {
 
     // wholeHouse mode
     return project.basePalace ?? fallback;
+  }
+
+  /// Find the base door with priority: entranceDoor > roomDoor > legacy door.
+  static CompassRecord? resolveBaseDoor(List<CompassRecord> records) {
+    for (final r in records) {
+      if (r.measureType == MeasureTypes.entranceDoor) return r;
+    }
+    for (final r in records) {
+      if (r.measureType == MeasureTypes.roomDoor) return r;
+    }
+    for (final r in records) {
+      if (r.measureType == MeasureTypes.door) return r;
+    }
+    return null;
   }
 
   /// Get the house gua label for display.
@@ -58,12 +68,31 @@ class BaZhaiBaseResolver {
     return '整宅$base宅｜伏位$base宫';
   }
 
+  /// Build a detailed door-source display for doorPosition mode.
+  /// Returns null if no door is found.
+  static String? doorSourceText({
+    required MeasurementProject project,
+    required List<CompassRecord> records,
+  }) {
+    if (project.baZhaiMode != 'doorPosition') return null;
+    final door = resolveBaseDoor(records);
+    if (door == null) return null;
+    final name = door.measureName?.trim().isNotEmpty == true
+        ? door.measureName!.trim()
+        : MeasureTypes.label(door.measureType);
+    final sector = DirectionSector.sector8FromHeading(door.heading);
+    final gua = DirectionSector.sectorToGua(sector);
+
+    if (door.measureType == MeasureTypes.entranceDoor) {
+      return '伏位来源：$name｜${door.directionText}｜${gua}宫';
+    }
+    // roomDoor or legacy door — add note
+    return '伏位来源：$name｜${door.directionText}｜${gua}宫（无入户门，临时采用）';
+  }
+
   /// Find the first door record for 伏位 source.
   static CompassRecord? firstDoor(List<CompassRecord> records) {
-    for (final r in records) {
-      if (MeasureTypes.isDoor(r.measureType)) return r;
-    }
-    return null;
+    return resolveBaseDoor(records);
   }
 
   /// Recalculate all records' bazhai data based on current base palace.

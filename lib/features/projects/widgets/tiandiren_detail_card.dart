@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
+import '../../../data/models/measure_type.dart';
 import '../../../fengshui/direction_sector.dart';
 import '../../../fengshui/mountain_24_info.dart';
 import '../../../fengshui/five_element_relation.dart';
-import '../../../data/models/measure_type.dart';
 
 /// Extract star name from bazhaiText like "五鬼火（二凶）" → "五鬼".
 String _starNameFromBazhai(String text) {
@@ -19,6 +19,12 @@ String _starNameFromBazhai(String text) {
 String _guaFromPalace(String palace) {
   if (palace.isEmpty) return '';
   return palace[0];
+}
+
+/// Compute sitting mountain from heading.
+String _sittingMountainFromHeading(double heading) {
+  final sittingDeg = (heading + 180) % 360;
+  return DirectionSector.mountainFromHeading(sittingDeg);
 }
 
 class TiandirenDetailCard extends StatelessWidget {
@@ -45,6 +51,9 @@ class TiandirenDetailCard extends StatelessWidget {
         DirectionSector.mountainFromHeading(record.heading);
     final mountainInfo =
         Mountain24InfoTable.fromMountain(mountainChar);
+    final sittingMountain = _sittingMountainFromHeading(record.heading);
+    final sittingInfo =
+        Mountain24InfoTable.fromMountain(sittingMountain);
     final typeLabel = MeasureTypes.label(record.measureType);
     final name = record.measureName?.trim().isNotEmpty == true
         ? record.measureName!.trim()
@@ -76,64 +85,72 @@ class TiandirenDetailCard extends StatelessWidget {
             const Text(
               '当前选中测点',
               style: TextStyle(
-                color: AppTheme.textTitle,
+                color: AppTheme.titleText,
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 10),
+            // Name line
             Text(
               '$typeLabel · $name',
               style: const TextStyle(
-                color: AppTheme.textPrimary,
+                color: AppTheme.bodyText,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 6),
-            _infoLine('方向', record.directionText),
-            const SizedBox(height: 2),
-            _infoLine('宫', '$palaceLabel（$dirLabel）'),
-            const SizedBox(height: 2),
-            _infoLine('山',
-                '${mountainInfo.mountainLabel}｜${mountainInfo.yuanLongLabel}｜${mountainInfo.element}'),
-            const SizedBox(height: 2),
-            Text(
-              '星：${record.bazhaiText}',
-              style: TextStyle(
-                color: isAuspicious
-                    ? const Color(0xFF3E7A4B)
-                    : const Color(0xFF9A4A3D),
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
+            const SizedBox(height: 8),
+            // Dual column layout
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _infoLine('方位', record.directionText),
+                      const SizedBox(height: 4),
+                      _infoLine('宫位',
+                          '$palaceLabel（$dirLabel）'),
+                      const SizedBox(height: 4),
+                      _infoLine('向山',
+                          '${mountainInfo.mountainLabel}｜${mountainInfo.yuanLongLabel}'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Right column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _infoLine('坐山',
+                          '${sittingInfo.mountainLabel}｜${sittingInfo.yuanLongLabel}'),
+                      const SizedBox(height: 4),
+                      _infoLine('星曜', record.bazhaiText,
+                          color: isAuspicious
+                              ? AppTheme.goodText
+                              : AppTheme.badText),
+                      const SizedBox(height: 4),
+                      if (relation != null)
+                        _infoLine('星与宫',
+                            '${relation.type}（${relation.detail}）',
+                            color: AppTheme.neutralText)
+                      else
+                        _infoLine('星与宫', '待定',
+                            color: AppTheme.neutralText),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            if (relation != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                '星宫：${relation.type}（${relation.detail}）',
-                style: const TextStyle(
-                  color: Color(0xFF6B5A44),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ] else ...[
-              const SizedBox(height: 2),
-              const Text(
-                '星宫：待定',
-                style: TextStyle(
-                  color: Color(0xFF6B5A44),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
             const SizedBox(height: 10),
             const Text(
               '注：测点为方位示意，不代表实际距离比例。',
               style: TextStyle(
-                color: AppTheme.textSecondary,
+                color: AppTheme.subText,
                 fontSize: 12,
                 height: 1.4,
               ),
@@ -144,27 +161,24 @@ class TiandirenDetailCard extends StatelessWidget {
     );
   }
 
-  Widget _infoLine(String label, String value) {
+  Widget _infoLine(String label, String value, {Color? color}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 32,
-          child: Text(
-            '$label：',
-            style: const TextStyle(
-              color: AppTheme.textLabel,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+        Text(
+          '$label：',
+          style: const TextStyle(
+            color: AppTheme.subText,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 15,
+            style: TextStyle(
+              color: color ?? AppTheme.bodyText,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),

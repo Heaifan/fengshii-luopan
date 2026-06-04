@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// 国画正色版——五行宫格配色
-/// 木：石绿 / 火：朱砂 / 土：藤黄 / 金：月白灰 / 水：石青
+/// 高亮五行色——九宫宫格配色
+/// 木：草绿 / 火：橙红 / 土：藤黄 / 金：月灰 / 水：天蓝
 class PalaceElementTheme {
   static String elementForSector(String sector) {
     switch (sector) {
@@ -18,39 +18,57 @@ class PalaceElementTheme {
     }
   }
 
-  // -- 国画正色：宫格底色 --
+  // -- 高亮五行色：宫格底色 --
+  static const Color woodBg = Color(0xFFB9F28E);
+  static const Color fireBg = Color(0xFFFFB0A8);
+  static const Color earthBg = Color(0xFFFFE680);
+  static const Color metalBg = Color(0xFFECECEC);
+  static const Color waterBg = Color(0xFFA9D4FF);
+
   static Color colorForElement(String element) {
     switch (element) {
-      case '木': return const Color(0xFFE4F1E5); // 石绿
-      case '火': return const Color(0xFFF9E1DA); // 朱砂
-      case '土': return const Color(0xFFF8ECCC); // 藤黄
-      case '金': return const Color(0xFFF0F0EC); // 月白灰
-      case '水': return const Color(0xFFDFEBF7); // 石青
-      default:   return const Color(0xFFF8ECCC);
+      case '木': return woodBg;
+      case '火': return fireBg;
+      case '土': return earthBg;
+      case '金': return metalBg;
+      case '水': return waterBg;
+      default:   return earthBg;
     }
   }
 
-  // -- 国画正色：宫格强调色 --
+  // -- 高亮五行色：强调色 --
+  static const Color woodAccent = Color(0xFF4CAF1D);
+  static const Color fireAccent = Color(0xFFE53935);
+  static const Color earthAccent = Color(0xFFD4A000);
+  static const Color metalAccent = Color(0xFF8C8C8C);
+  static const Color waterAccent = Color(0xFF2F7FD9);
+
   static Color accentForElement(String element) {
     switch (element) {
-      case '木': return const Color(0xFF2F8F57);
-      case '火': return const Color(0xFFC53A2F);
-      case '土': return const Color(0xFFC79A1B);
-      case '金': return const Color(0xFF8F9189);
-      case '水': return const Color(0xFF2F6FB3);
-      default:   return const Color(0xFFC79A1B);
+      case '木': return woodAccent;
+      case '火': return fireAccent;
+      case '土': return earthAccent;
+      case '金': return metalAccent;
+      case '水': return waterAccent;
+      default:   return earthAccent;
     }
   }
 
-  // -- 国画正色：宫格深文字色 --
+  // -- 高亮五行色：深文字色 --
+  static const Color woodText = Color(0xFF1B4F10);
+  static const Color fireText = Color(0xFF7A1C19);
+  static const Color earthText = Color(0xFF6B5400);
+  static const Color metalText = Color(0xFF424242);
+  static const Color waterText = Color(0xFF124C82);
+
   static Color textForElement(String element) {
     switch (element) {
-      case '木': return const Color(0xFF1F5B38);
-      case '火': return const Color(0xFF7A251F);
-      case '土': return const Color(0xFF7A5A12);
-      case '金': return const Color(0xFF50524B);
-      case '水': return const Color(0xFF214A77);
-      default:   return const Color(0xFF7A5A12);
+      case '木': return woodText;
+      case '火': return fireText;
+      case '土': return earthText;
+      case '金': return metalText;
+      case '水': return waterText;
+      default:   return earthText;
     }
   }
 }

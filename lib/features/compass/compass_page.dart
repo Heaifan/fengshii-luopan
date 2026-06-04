@@ -766,7 +766,7 @@ class _CompassPageState extends State<CompassPage> {
                                 Wrap(
                                   spacing: 6,
                                   runSpacing: 6,
-                                  children: MeasureTypes.all.map((t) {
+                                  children: MeasureTypes.selectable.map((t) {
                                     final selected = t == measureType;
                                     return ChoiceChip(
                                       label: Text(

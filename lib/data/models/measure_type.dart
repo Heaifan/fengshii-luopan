@@ -1,7 +1,7 @@
 class MeasureTypes {
   MeasureTypes._();
 
-  // Original door (kept for backwards compatibility)
+  // Original door (kept for backwards compatibility only)
   static const door = 'door';
   // New specific door types
   static const entranceDoor = 'entranceDoor';
@@ -16,8 +16,23 @@ class MeasureTypes {
   static const altar = 'altar';
   static const other = 'other';
 
+  /// All types including legacy 'door' (used internally).
   static const all = [
     door,
+    entranceDoor,
+    roomDoor,
+    balcony,
+    window,
+    livingRoom,
+    bed,
+    stove,
+    desk,
+    altar,
+    other,
+  ];
+
+  /// Types shown in user-facing selection (hides legacy 'door').
+  static const selectable = [
     entranceDoor,
     roomDoor,
     balcony,

@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import '../../data/models/compass_record.dart';
-import '../../data/models/measure_type.dart';
 import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
 import '../../theme/app_svg_icons.dart';

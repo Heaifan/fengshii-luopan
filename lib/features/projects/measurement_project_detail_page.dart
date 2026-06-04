@@ -117,10 +117,12 @@ class _MeasurementProjectDetailPageState
                             color: AppTheme.textLabel,
                           ),
                         ),
-                        if (_project!.baZhaiMode == 'doorPosition' &&
-                            _baseDoorRecord != null)
+                        if (_project!.baZhaiMode == 'doorPosition')
                           Text(
-                            '伏位来源：${_baseDoorRecord!.measureName?.isNotEmpty == true ? _baseDoorRecord!.measureName! : MeasureTypes.label(_baseDoorRecord!.measureType)}｜${_baseDoorRecord!.directionText}',
+                            BaZhaiBaseResolver.doorSourceText(
+                              project: _project!,
+                              records: _points,
+                            ) ?? '伏位来源：无门位数据',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppTheme.textSecondary,
@@ -399,14 +401,6 @@ class _MeasurementProjectDetailPageState
     );
   }
 
-  CompassRecord? get _baseDoorRecord {
-    if (_project?.baZhaiMode != 'doorPosition') return null;
-    for (final r in _points) {
-      if (MeasureTypes.isDoor(r.measureType)) return r;
-    }
-    return null;
-  }
-
   String get _projectBaseGua {
     final base = BaZhaiBaseResolver.resolveBasePalace(
       project: _project!,
@@ -429,18 +423,6 @@ class _MeasurementProjectDetailPageState
       await _storage.deleteRecord(point.id);
     } else {
       final heading = result.heading ?? point.heading;
-      final base = _project!.baZhaiMode != 'doorPosition'
-          ? _projectBaseGua
-          : (MeasureTypes.isDoor(result.measureType)
-                ? (DirectionSector.sectorToGua(
-                        DirectionSector.sector8FromHeading(heading),
-                      ).isEmpty
-                      ? '乾'
-                      : DirectionSector.sectorToGua(
-                          DirectionSector.sector8FromHeading(heading),
-                        ))
-                : _projectBaseGua);
-
       final updatedRecord = CompassRecord(
         id: point.id,
         name: point.name,

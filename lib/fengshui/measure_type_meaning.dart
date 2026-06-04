@@ -3,6 +3,10 @@ class MeasureTypeMeaning {
     switch (type) {
       case 'door':
         return '门主纳气、出入';
+      case 'entranceDoor':
+        return '入户门主纳气、出入';
+      case 'roomDoor':
+        return '房门主区内通行';
       case 'balcony':
         return '阳台主采光、纳气';
       case 'window':
@@ -25,6 +29,10 @@ class MeasureTypeMeaning {
   static String shortLabel(String type) {
     switch (type) {
       case 'door':
+        return '门';
+      case 'entranceDoor':
+        return '门';
+      case 'roomDoor':
         return '门';
       case 'balcony':
         return '阳';

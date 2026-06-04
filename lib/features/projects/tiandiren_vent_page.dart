@@ -44,7 +44,7 @@ class _TiandirenVentPageState extends State<TiandirenVentPage> {
     final n = _records.length;
     if (n == 0) return '当前暂无测点';
     if (n == 1) return '当前为单点记录';
-    final hasDoor = _records.any((r) => r.measureType == 'door');
+    final hasDoor = _records.any((r) => r.measureType == 'door' || r.measureType == 'entranceDoor' || r.measureType == 'roomDoor');
     final hasBed = _records.any((r) => r.measureType == 'bed');
     final hasStove = _records.any((r) => r.measureType == 'stove');
     if (hasDoor && hasBed && hasStove) return '当前为完整门主灶记录';
@@ -57,7 +57,7 @@ class _TiandirenVentPageState extends State<TiandirenVentPage> {
     if (n == 1) {
       return '已识别 1 个测点，可作为后续通气分析基础。';
     }
-    final hasDoor = _records.any((r) => r.measureType == 'door');
+    final hasDoor = _records.any((r) => r.measureType == 'door' || r.measureType == 'entranceDoor' || r.measureType == 'roomDoor');
     final hasBed = _records.any((r) => r.measureType == 'bed');
     final hasStove = _records.any((r) => r.measureType == 'stove');
     if (hasDoor && hasBed && hasStove) {
@@ -225,7 +225,10 @@ class _TiandirenVentPageState extends State<TiandirenVentPage> {
 
   int _typePriority(String type) {
     switch (type) {
-      case 'door': return 1;
+      case 'door':
+      case 'entranceDoor':
+      case 'roomDoor':
+        return 1;
       case 'bed': return 2;
       case 'stove': return 3;
       case 'altar': return 4;

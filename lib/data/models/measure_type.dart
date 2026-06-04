@@ -1,7 +1,12 @@
 class MeasureTypes {
   MeasureTypes._();
 
+  // Original door (kept for backwards compatibility)
   static const door = 'door';
+  // New specific door types
+  static const entranceDoor = 'entranceDoor';
+  static const roomDoor = 'roomDoor';
+
   static const balcony = 'balcony';
   static const window = 'window';
   static const livingRoom = 'livingRoom';
@@ -13,6 +18,8 @@ class MeasureTypes {
 
   static const all = [
     door,
+    entranceDoor,
+    roomDoor,
     balcony,
     window,
     livingRoom,
@@ -23,10 +30,19 @@ class MeasureTypes {
     other,
   ];
 
+  /// Check if a type is any kind of door.
+  static bool isDoor(String type) {
+    return type == door || type == entranceDoor || type == roomDoor;
+  }
+
   static String label(String type) {
     switch (type) {
       case door:
         return '门';
+      case entranceDoor:
+        return '入户门';
+      case roomDoor:
+        return '房门';
       case balcony:
         return '阳台';
       case window:

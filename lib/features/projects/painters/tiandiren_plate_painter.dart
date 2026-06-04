@@ -6,6 +6,7 @@ import '../../../fengshui/mountain_24.dart';
 import '../../../fengshui/bazhai_you_nian_table.dart';
 import '../../../fengshui/measure_type_meaning.dart';
 import '../../../fengshui/palace_element_theme.dart';
+import '../../../data/models/measure_type.dart';
 
 class TiandirenPlatePainter extends CustomPainter {
   final List<CompassRecord> records;
@@ -242,9 +243,6 @@ class TiandirenPlatePainter extends CustomPainter {
     for (final record in records) {
       final isSelected = selectedRecord?.id == record.id;
       final pos = _pointPosition(record, center, R);
-      final label = MeasureTypeMeaning.pointShortLabel(
-        type: record.measureType, measureName: record.measureName,
-      );
 
       if (isSelected) {
         canvas.drawCircle(pos, 14 * s, Paint()
@@ -256,9 +254,74 @@ class TiandirenPlatePainter extends CustomPainter {
           ..strokeWidth = 2);
       }
 
-      canvas.drawCircle(pos, isSelected ? 10 * s : 8 * s, Paint()..color = const Color(0xFF5A4724));
+      final type = record.measureType;
+      if (type == 'entranceDoor' || type == 'roomDoor') {
+        _drawDoorIcon(canvas, pos, isSelected ? 10 * s : 8 * s, type);
+      } else {
+        final label = MeasureTypeMeaning.pointShortLabel(
+          type: type, measureName: record.measureName,
+        );
+        canvas.drawCircle(pos, isSelected ? 10 * s : 8 * s, Paint()..color = const Color(0xFF5A4724));
+        _drawCenteredText(canvas, label, pos, 10 * s, FontWeight.bold, Colors.white);
+      }
+    }
+  }
 
-      _drawCenteredText(canvas, label, pos, 10 * s, FontWeight.bold, Colors.white);
+  /// Draw a simplified door icon on the canvas.
+  /// [type] is 'entranceDoor' (双开门) or 'roomDoor' (单开门).
+  void _drawDoorIcon(Canvas canvas, Offset pos, double r, String type) {
+    // Background circle
+    final bgPaint = Paint()..color = const Color(0xFF5A4724);
+    canvas.drawCircle(pos, r, bgPaint);
+
+    final doorW = r * 0.35;
+    final doorH = r * 1.0;
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final fillPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill;
+
+    if (type == 'entranceDoor') {
+      // Double doors: two rectangles side by side with gap
+      final gap = r * 0.08;
+      final leftRect = Rect.fromCenter(
+        center: Offset(pos.dx - doorW * 0.5 - gap * 0.5, pos.dy),
+        width: doorW, height: doorH,
+      );
+      final rightRect = Rect.fromCenter(
+        center: Offset(pos.dx + doorW * 0.5 + gap * 0.5, pos.dy),
+        width: doorW, height: doorH,
+      );
+      canvas.drawRect(leftRect, fillPaint);
+      canvas.drawRect(leftRect, paint);
+      canvas.drawRect(rightRect, fillPaint);
+      canvas.drawRect(rightRect, paint);
+      // Small knob on each door
+      final knobR = r * 0.06;
+      canvas.drawCircle(
+        Offset(pos.dx - gap * 0.5 - doorW * 0.3, pos.dy),
+        knobR, Paint()..color = Colors.white,
+      );
+      canvas.drawCircle(
+        Offset(pos.dx + gap * 0.5 + doorW * 0.3, pos.dy),
+        knobR, Paint()..color = Colors.white,
+      );
+    } else {
+      // Single door: one rectangle on left side
+      final doorRect = Rect.fromCenter(
+        center: Offset(pos.dx - r * 0.15, pos.dy),
+        width: doorW, height: doorH,
+      );
+      canvas.drawRect(doorRect, fillPaint);
+      canvas.drawRect(doorRect, paint);
+      // Knob on right side of door
+      canvas.drawCircle(
+        Offset(pos.dx + r * 0.05, pos.dy),
+        r * 0.06, Paint()..color = Colors.white,
+      );
     }
   }
 
@@ -269,6 +332,8 @@ class TiandirenPlatePainter extends CustomPainter {
   double _radiusFactor(String type) {
     switch (type) {
       case 'door': return 0.48;
+      case 'entranceDoor': return 0.65; // 入户门贴九宫边界
+      case 'roomDoor': return 0.44;     // 房门在内
       case 'balcony': return 0.44;
       case 'window': return 0.40;
       case 'stove': return 0.36;

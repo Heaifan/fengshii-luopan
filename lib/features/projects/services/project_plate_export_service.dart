@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -38,7 +37,7 @@ class ProjectPlateExportService {
     } catch (_) {}
   }
 
-  /// Capture the RepaintBoundary and return raw PNG bytes.
+  /// Capture and return raw PNG bytes.
   static Future<Uint8List?> captureBytes({
     required GlobalKey repaintKey,
   }) async {
@@ -56,47 +55,11 @@ class ProjectPlateExportService {
     }
   }
 
-  /// Save PNG bytes to a temp file, insert into gallery, then delete the file.
-  static Future<ProjectPlateExportResult> saveToGallery(
-    Uint8List bytes, {
-    required String fileName,
-  }) async {
-    File? file;
-    try {
-      await cleanupOldExportFiles();
-      final dir = await getTemporaryDirectory();
-      final exportDir = Directory('${dir.path}/plate_exports');
-      if (!await exportDir.exists()) await exportDir.create();
-      file = File('${exportDir.path}/$fileName.png');
-      await file.writeAsBytes(bytes);
-
-      await Gal.putImage(file.path);
-      return const ProjectPlateExportResult(
-        success: true,
-        message: '正盘图片已保存到相册',
-      );
-    } catch (e, st) {
-      debugPrint('saveToGallery failed: $e\n$st');
-      return const ProjectPlateExportResult(
-        success: false,
-        message: '保存失败，请检查相册权限',
-      );
-    } finally {
-      if (file != null && await file.exists()) {
-        try {
-          await file.delete();
-        } catch (e) {
-          debugPrint('delete temp file failed: $e');
-        }
-      }
-    }
-  }
-
-  /// Save PNG bytes to a temp file, share via system sheet.
-  /// Temp file kept for sharing, cleaned up via cleanupOldExportFiles later.
+  /// Save bytes to temp file and trigger system share sheet.
   static Future<ProjectPlateExportResult> shareImage(
     Uint8List bytes, {
     required String fileName,
+    String? shareTitle,
   }) async {
     File? file;
     try {
@@ -109,11 +72,11 @@ class ProjectPlateExportService {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: '风水荷盘 · ${fileName.replaceAll('_', ' ')}',
+        text: shareTitle ?? '风水荷盘 · ${fileName.replaceAll('_', ' ')}',
       );
       return const ProjectPlateExportResult(
         success: true,
-        message: '已打开分享面板',
+        message: '已打开分享面板，可选择保存到相册',
       );
     } catch (e, st) {
       debugPrint('shareImage failed: $e\n$st');

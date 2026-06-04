@@ -2,15 +2,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import '../../data/models/compass_record.dart';
+import '../../data/models/measure_type.dart';
 import '../../data/models/measurement_project.dart';
 import '../../data/storage/settings_storage.dart';
 import '../../theme/app_svg_icons.dart';
 import '../../widgets/app_svg_icon.dart';
 import '../../fengshui/direction_sector.dart';
 import '../../fengshui/bazhai_base_resolver.dart';
-import '../../fengshui/bazhai_you_nian_table.dart';
-import '../../fengshui/compass_math.dart';
-import '../../fengshui/compass_reading_builder.dart';
 import '../compass/compass_page.dart';
 import 'widgets/tiandiren_plate.dart';
 import 'widgets/tiandiren_detail_card.dart';
@@ -118,18 +116,8 @@ class _SimpleProjectPlatePageState
                 const SizedBox(height: 14),
                 _buildExportTile(
                   icon: Icons.photo_library_outlined,
-                  title: '保存到相册',
-                  subtitle: '导出正盘长图到手机相册',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _savePlateToGallery();
-                  },
-                ),
-                const SizedBox(height: 10),
-                _buildExportTile(
-                  icon: Icons.share,
-                  title: '分享图片',
-                  subtitle: '通过微信、邮件等方式分享',
+                  title: '导出图片',
+                  subtitle: '导出正盘长图，通过分享保存到相册',
                   onTap: () {
                     Navigator.pop(ctx);
                     _sharePlateImage();
@@ -219,29 +207,6 @@ class _SimpleProjectPlatePageState
     return '风水荷盘_${truncated}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  Future<void> _savePlateToGallery() async {
-    setState(() => _exporting = true);
-    try {
-      final bytes = await _captureExportBytes();
-      if (bytes == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('导出失败，请重试')),
-          );
-        }
-        return;
-      }
-      final result = await ProjectPlateExportService.saveToGallery(
-          bytes, fileName: _exportFileName);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message)),
-      );
-    } finally {
-      if (mounted) setState(() => _exporting = false);
-    }
-  }
-
   Future<void> _sharePlateImage() async {
     setState(() => _exporting = true);
     try {
@@ -317,60 +282,6 @@ class _SimpleProjectPlatePageState
     await _showEditSheet(record);
   }
 
-  Future<String> _resolveEditBaseGua({
-    required CompassRecord originalPoint,
-    required MeasurePointFormResult result,
-    required double heading,
-  }) async {
-    final mode = widget.project.baZhaiMode;
-    if (mode != 'doorPosition') return _projectBasePalace;
-
-    if (result.measureType == 'door') {
-      final sector = DirectionSector.sector8FromHeading(heading);
-      final gua = DirectionSector.sectorToGua(sector);
-      if (gua.isNotEmpty) return gua;
-    }
-
-    if (originalPoint.measureType == 'door' &&
-        result.measureType != 'door') {
-      final records = await _storage
-          .loadRecordsByProject(widget.project.id);
-      final simulated = records.map((r) {
-        if (r.id != originalPoint.id) return r;
-        return CompassRecord(
-          id: r.id,
-          name: r.name,
-          location: r.location,
-          note: result.note,
-          createdAt: r.createdAt,
-          heading: heading,
-          directionText: r.directionText,
-          sittingFacingText: r.sittingFacingText,
-          sittingMountain: r.sittingMountain,
-          facingMountain: r.facingMountain,
-          palace: r.palace,
-          mountainText: r.mountainText,
-          bazhaiText: r.bazhaiText,
-          statusText: r.statusText,
-          horizontalAngle: r.horizontalAngle,
-          verticalAngle: r.verticalAngle,
-          houseGua: r.houseGua,
-          projectId: r.projectId,
-          measureType: result.measureType,
-          measureName: result.measureName,
-          spaceName: result.spaceName,
-        );
-      }).toList();
-      final base = BaZhaiBaseResolver.resolveBasePalace(
-        project: widget.project,
-        records: simulated,
-      );
-      return base ?? '乾';
-    }
-
-    return _projectBasePalace;
-  }
-
   Future<void> _showEditSheet(CompassRecord record) async {
     final result = await showMeasurePointFormSheet(
       context: context,
@@ -385,20 +296,6 @@ class _SimpleProjectPlatePageState
       await _storage.deleteRecord(record.id);
     } else {
       final heading = result.heading ?? record.heading;
-      final editBaseGua = await _resolveEditBaseGua(
-        originalPoint: record,
-        result: result,
-        heading: heading,
-      );
-      final reading = CompassReadingBuilder.build(
-        degree: heading,
-        houseGua: editBaseGua,
-      );
-      final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
-      final starElement = starMeta?.element ?? '';
-      final bazhaiText = '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
-      final directionText = '${compassDirectionName(heading)}${heading.toStringAsFixed(0)}°';
-
       final updated = CompassRecord(
         id: record.id,
         name: record.name,
@@ -406,17 +303,17 @@ class _SimpleProjectPlatePageState
         note: result.note,
         createdAt: record.createdAt,
         heading: heading,
-        directionText: directionText,
-        sittingFacingText: reading.sittingFacingText,
-        sittingMountain: reading.sittingMountain,
-        facingMountain: reading.facingMountain,
-        palace: '${reading.facingGua}宫',
-        mountainText: reading.fullSanyuanText,
-        bazhaiText: bazhaiText,
+        directionText: record.directionText,
+        sittingFacingText: record.sittingFacingText,
+        sittingMountain: record.sittingMountain,
+        facingMountain: record.facingMountain,
+        palace: record.palace,
+        mountainText: record.mountainText,
+        bazhaiText: record.bazhaiText,
         statusText: record.statusText,
         horizontalAngle: record.horizontalAngle,
         verticalAngle: record.verticalAngle,
-        houseGua: editBaseGua,
+        houseGua: record.houseGua,
         projectId: record.projectId,
         measureType: result.measureType,
         measureName: result.measureName,
@@ -424,6 +321,19 @@ class _SimpleProjectPlatePageState
       );
       await _storage.updateRecord(updated);
     }
+
+    // Batch recalculate ALL points based on current base palace
+    final fresh = await _storage.loadRecordsByProject(widget.project.id);
+    final recalculated = BaZhaiBaseResolver.recalculateAllPoints(
+      project: widget.project,
+      records: fresh,
+    );
+    final allRecords = await _storage.loadRecords();
+    for (final rec in recalculated) {
+      final idx = allRecords.indexWhere((r) => r.id == rec.id);
+      if (idx >= 0) allRecords[idx] = rec;
+    }
+    await _storage.saveRecords(allRecords);
 
     await _loadRecords();
 
@@ -436,7 +346,6 @@ class _SimpleProjectPlatePageState
         _selectedSector = null;
       });
     } else {
-      // Reload the updated record from storage
       final reloaded = await _storage.loadRecordsByProject(
           widget.project.id);
       final updatedRecord = reloaded.where(

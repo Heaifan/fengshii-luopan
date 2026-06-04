@@ -10,9 +10,6 @@ import '../../theme/app_svg_icons.dart';
 import '../../widgets/app_svg_icon.dart';
 import '../../fengshui/direction_sector.dart';
 import '../../fengshui/bazhai_base_resolver.dart';
-import '../../fengshui/bazhai_you_nian_table.dart';
-import '../../fengshui/compass_math.dart';
-import '../../fengshui/compass_reading_builder.dart';
 import '../compass/compass_page.dart';
 import '../records/compass_record_detail_page.dart';
 import 'simple_project_plate_page.dart';
@@ -23,10 +20,7 @@ import 'widgets/measure_point_form_sheet.dart';
 class MeasurementProjectDetailPage extends StatefulWidget {
   final MeasurementProject project;
 
-  const MeasurementProjectDetailPage({
-    super.key,
-    required this.project,
-  });
+  const MeasurementProjectDetailPage({super.key, required this.project});
 
   @override
   State<MeasurementProjectDetailPage> createState() =>
@@ -48,11 +42,9 @@ class _MeasurementProjectDetailPageState
   }
 
   Future<void> _loadPoints() async {
-    final points =
-        await _storage.loadRecordsByProject(_project!.id);
+    final points = await _storage.loadRecordsByProject(_project!.id);
     final projects = await _storage.loadProjects();
-    final updated =
-        projects.where((p) => p.id == _project!.id).firstOrNull;
+    final updated = projects.where((p) => p.id == _project!.id).firstOrNull;
     if (!mounted) return;
     setState(() {
       _points = points;
@@ -96,40 +88,53 @@ class _MeasurementProjectDetailPageState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_project!.name,
-                            style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary)),
+                        Text(
+                          _project!.name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         if (_project!.location != null &&
                             _project!.location!.isNotEmpty)
-                          Text(_project!.location!,
-                              style: const TextStyle(
-                                  fontSize: 14,
-                                  color: AppTheme.textSecondary)),
+                          Text(
+                            _project!.location!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
                         Text(
                           BaZhaiBaseResolver.summaryText(
                             project: _project!,
                             records: _points,
                           ),
                           style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textLabel)),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textLabel,
+                          ),
+                        ),
                         if (_project!.baZhaiMode == 'doorPosition' &&
                             _baseDoorRecord != null)
                           Text(
                             '伏位来源：${_baseDoorRecord!.measureName?.isNotEmpty == true ? _baseDoorRecord!.measureName! : MeasureTypes.label(_baseDoorRecord!.measureType)}｜${_baseDoorRecord!.directionText}',
                             style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w500)),
-                        Text('已测 ${_points.length} 个点',
-                            style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textLabel)),
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        Text(
+                          '已测 ${_points.length} 个点',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textLabel,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -138,8 +143,7 @@ class _MeasurementProjectDetailPageState
                       final edited = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => EditProjectPage(
-                              project: _project!),
+                          builder: (_) => EditProjectPage(project: _project!),
                         ),
                       );
                       if (edited == true) {
@@ -149,8 +153,11 @@ class _MeasurementProjectDetailPageState
                     },
                     child: const Padding(
                       padding: EdgeInsets.all(8),
-                      child: Icon(Icons.edit_outlined,
-                          size: 20, color: AppTheme.textHint),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 20,
+                        color: AppTheme.textHint,
+                      ),
                     ),
                   ),
                 ],
@@ -167,20 +174,16 @@ class _MeasurementProjectDetailPageState
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => CompassPage(
-                              activeProject: _project!),
+                          builder: (_) => CompassPage(activeProject: _project!),
                         ),
                       );
                     },
-                    icon: const Icon(Icons.add_location_alt,
-                        size: 18),
+                    icon: const Icon(Icons.add_location_alt, size: 18),
                     label: const Text('继续测量'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF5A4724),
-                      side: const BorderSide(
-                          color: Color(0xFF5A4724)),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFF5A4724)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
@@ -191,8 +194,8 @@ class _MeasurementProjectDetailPageState
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => SimpleProjectPlatePage(
-                              project: _project!),
+                          builder: (_) =>
+                              SimpleProjectPlatePage(project: _project!),
                         ),
                       );
                     },
@@ -200,10 +203,8 @@ class _MeasurementProjectDetailPageState
                     label: const Text('简易正盘'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF5A4724),
-                      side: const BorderSide(
-                          color: Color(0xFF5A4724)),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFF5A4724)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
@@ -214,20 +215,16 @@ class _MeasurementProjectDetailPageState
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => TiandirenVentPage(
-                              project: _project!),
+                          builder: (_) => TiandirenVentPage(project: _project!),
                         ),
                       );
                     },
-                    icon: const Icon(Icons.circle_outlined,
-                        size: 18),
+                    icon: const Icon(Icons.circle_outlined, size: 18),
                     label: const Text('天地人通气'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF5A4724),
-                      side: const BorderSide(
-                          color: Color(0xFF5A4724)),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFF5A4724)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
@@ -238,10 +235,11 @@ class _MeasurementProjectDetailPageState
             // ---- Points list ----
             if (_loading)
               const Center(
-                  child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ))
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
+              )
             else if (_points.isEmpty)
               _buildEmptyPoints()
             else
@@ -265,19 +263,26 @@ class _MeasurementProjectDetailPageState
       ),
       child: Column(
         children: [
-          const Icon(Icons.explore_outlined,
-              size: 40, color: AppTheme.textHint),
+          const Icon(
+            Icons.explore_outlined,
+            size: 40,
+            color: AppTheme.textHint,
+          ),
           const SizedBox(height: 10),
-          const Text('暂无测点',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary)),
+          const Text(
+            '暂无测点',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+          ),
           const SizedBox(height: 4),
-          const Text('点击"继续测量"开始采集门、阳台、窗、床、灶等方位。',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13, color: AppTheme.textSecondary)),
+          const Text(
+            '点击"继续测量"开始采集门、阳台、窗、床、灶等方位。',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+          ),
         ],
       ),
     );
@@ -286,8 +291,7 @@ class _MeasurementProjectDetailPageState
   Widget _buildPointCard(int index, CompassRecord point) {
     final typeLabel = MeasureTypes.label(point.measureType);
     final isAuspicious = !point.bazhaiText.contains('凶');
-    final timeStr =
-        DateFormat('MM-dd HH:mm').format(point.createdAt);
+    final timeStr = DateFormat('MM-dd HH:mm').format(point.createdAt);
 
     return GestureDetector(
       onTap: () {
@@ -307,7 +311,8 @@ class _MeasurementProjectDetailPageState
           color: const Color(0xFFF7F0DF),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: const Color(0xFF9A7A3D).withValues(alpha: 0.25)),
+            color: const Color(0xFF9A7A3D).withValues(alpha: 0.25),
+          ),
         ),
         child: Row(
           children: [
@@ -320,11 +325,14 @@ class _MeasurementProjectDetailPageState
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
-              child: Text(typeLabel,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold)),
+              child: Text(
+                typeLabel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             // Info
@@ -334,41 +342,54 @@ class _MeasurementProjectDetailPageState
                 children: [
                   if (point.measureName != null &&
                       point.measureName!.isNotEmpty)
-                    Text(point.measureName!,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary)),
-                  if (point.spaceName != null &&
-                      point.spaceName!.isNotEmpty)
-                    Text(point.spaceName!,
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textLabel)),
+                    Text(
+                      point.measureName!,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  if (point.spaceName != null && point.spaceName!.isNotEmpty)
+                    Text(
+                      point.spaceName!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textLabel,
+                      ),
+                    ),
                   Text(
                     '${point.directionText} · ${point.sittingFacingText}',
                     style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textTitle),
+                      fontSize: 13,
+                      color: AppTheme.textTitle,
+                    ),
                   ),
                   Text(
                     '${point.directionText}｜${DirectionSector.sectorGuaPalaceLabel(DirectionSector.sector8FromHeading(point.heading))} · ${DirectionSector.mountainLabelFromHeading(point.heading)}',
                     style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textSecondary),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
-                  Text(point.bazhaiText,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isAuspicious
-                              ? const Color(0xFF2E7D32)
-                              : const Color(0xFFC43C32))),
-                  Text(timeStr,
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.textSecondary)),
+                  Text(
+                    point.bazhaiText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isAuspicious
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFC43C32),
+                    ),
+                  ),
+                  Text(
+                    timeStr,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -381,7 +402,7 @@ class _MeasurementProjectDetailPageState
   CompassRecord? get _baseDoorRecord {
     if (_project?.baZhaiMode != 'doorPosition') return null;
     for (final r in _points) {
-      if (r.measureType == 'door') return r;
+      if (MeasureTypes.isDoor(r.measureType)) return r;
     }
     return null;
   }
@@ -410,28 +431,35 @@ class _MeasurementProjectDetailPageState
       final heading = result.heading ?? point.heading;
       final base = _project!.baZhaiMode != 'doorPosition'
           ? _projectBaseGua
-          : (result.measureType == 'door'
-              ? (DirectionSector.sectorToGua(
-                      DirectionSector.sector8FromHeading(heading))
-                  .isEmpty
-                  ? '乾'
-                  : DirectionSector.sectorToGua(
-                      DirectionSector.sector8FromHeading(heading)))
-              : _projectBaseGua);
+          : (MeasureTypes.isDoor(result.measureType)
+                ? (DirectionSector.sectorToGua(
+                        DirectionSector.sector8FromHeading(heading),
+                      ).isEmpty
+                      ? '乾'
+                      : DirectionSector.sectorToGua(
+                          DirectionSector.sector8FromHeading(heading),
+                        ))
+                : _projectBaseGua);
 
       final updatedRecord = CompassRecord(
-        id: point.id, name: point.name, location: point.location,
-        note: result.note, createdAt: point.createdAt,
-        heading: heading, directionText: point.directionText,
+        id: point.id,
+        name: point.name,
+        location: point.location,
+        note: result.note,
+        createdAt: point.createdAt,
+        heading: heading,
+        directionText: point.directionText,
         sittingFacingText: point.sittingFacingText,
         sittingMountain: point.sittingMountain,
         facingMountain: point.facingMountain,
-        palace: point.palace, mountainText: point.mountainText,
+        palace: point.palace,
+        mountainText: point.mountainText,
         bazhaiText: point.bazhaiText,
         statusText: point.statusText,
         horizontalAngle: point.horizontalAngle,
         verticalAngle: point.verticalAngle,
-        houseGua: point.houseGua, projectId: point.projectId,
+        houseGua: point.houseGua,
+        projectId: point.projectId,
         measureType: result.measureType,
         measureName: result.measureName,
         spaceName: result.spaceName,
@@ -440,8 +468,7 @@ class _MeasurementProjectDetailPageState
     }
 
     // Reload fresh records from storage
-    final fresh =
-        await _storage.loadRecordsByProject(_project!.id);
+    final fresh = await _storage.loadRecordsByProject(_project!.id);
 
     // Recalculate ALL project points based on current base palace
     final recalculated = BaZhaiBaseResolver.recalculateAllPoints(
@@ -459,8 +486,8 @@ class _MeasurementProjectDetailPageState
 
     await _loadPoints();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.delete ? '已删除测点' : '测点已更新')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(result.delete ? '已删除测点' : '测点已更新')));
   }
 }

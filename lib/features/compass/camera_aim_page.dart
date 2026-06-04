@@ -39,6 +39,7 @@ class _CameraAimPageState extends State<CameraAimPage>
   CameraController? _cameraController;
   bool _cameraInitialized = false;
   String? _cameraError;
+  double _currentZoom = 1.0;
 
   // Heading
   double _heading = 0;
@@ -180,15 +181,14 @@ class _CameraAimPageState extends State<CameraAimPage>
         setState(() => _cameraError = '未检测到相机');
         return;
       }
-      // Collect back cameras
+      // Collect back cameras (use index 0 = main)
       _backCameras = cameras
           .where((c) => c.lensDirection == CameraLensDirection.back)
           .toList();
       if (_backCameras.isEmpty) {
-        // Fallback to any camera
         _backCameras = [cameras.first];
       }
-      _cameraIndex = _backCameras.length - 1; // Last back cam is often wide
+      _cameraIndex = 0;
       await _initCameraController(_backCameras[_cameraIndex]);
     } catch (e) {
       if (!mounted) return;
@@ -203,6 +203,17 @@ class _CameraAimPageState extends State<CameraAimPage>
       await controller.initialize();
       if (!mounted) return;
       setState(() => _cameraInitialized = true);
+
+      // Auto-set to ultra-wide if supported
+      try {
+        final minZoom = await controller.getMinZoomLevel();
+        if (minZoom < 0.8) {
+          await controller.setZoomLevel(minZoom);
+          _currentZoom = minZoom;
+        }
+      } catch (_) {
+        // Zoom API not available on this device — stay at default 1x
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _cameraError = '相机初始化失败：$e');
@@ -244,37 +255,30 @@ class _CameraAimPageState extends State<CameraAimPage>
   }
 
   // ============================================================
-  // Capture → Watermark → Save
+  // Capture → 伏位 (first) → Watermark → Save
   // ============================================================
+
+  /// Check if this project still needs its first definition (伏位).
+  bool get _needsBasePalace {
+    return _project != null &&
+        BaZhaiBaseResolver.needsBasePalace(_project!, _projectRecords);
+  }
 
   Future<void> _onCapture() async {
     if (_capturing || _cameraController == null || _project == null) return;
     setState(() => _capturing = true);
 
     try {
-      // 1. Take photo → save as temp file
-      final XFile? photo;
-      try {
-        photo = await _cameraController!.takePicture();
-      } catch (e) {
+      // Check if first capture — must define 伏位 first
+      if (_needsBasePalace) {
+        await _setBasePalaceAndCapture();
         if (!mounted) return;
-        final proceed = await _showPhotoFailedDialog();
-        if (proceed == true) {
-          await _saveWithoutPhoto();
-        }
         setState(() => _capturing = false);
         return;
       }
 
-      // 2. Save to temp
-      final tempDir = await getApplicationDocumentsDirectory();
-      final tempFile = '${tempDir.path}/temp_capture_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      _tempPhotoPath = tempFile;
-      await File(photo.path).copy(tempFile);
-
-      // 3. Open save form
-      if (!mounted) return;
-      await _openSaveForm(tempFile);
+      // Normal capture: take photo → save form
+      await _normalCapture();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -283,6 +287,68 @@ class _CameraAimPageState extends State<CameraAimPage>
     } finally {
       if (mounted) setState(() => _capturing = false);
     }
+  }
+
+  /// First capture: set 伏位 from heading, save project, save photo.
+  Future<void> _setBasePalaceAndCapture() async {
+    // 1. Set 伏位 from current heading
+    final gua = BaZhaiBaseResolver.guaFromHeading(_heading);
+    final now = DateTime.now();
+    final updatedProject = MeasurementProject(
+      id: _project!.id,
+      name: _project!.name,
+      type: _project!.type,
+      location: _project!.location,
+      note: _project!.note,
+      createdAt: _project!.createdAt,
+      updatedAt: now,
+      baZhaiMode: 'wholeHouse',
+      basePalace: gua,
+    );
+    await _storage.updateProject(updatedProject);
+    _project = updatedProject;
+    _bazhaiResolved = true;
+    _bazhaiBaseGua = gua;
+
+    // 2. Show 伏位 confirmation
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('伏位已定：${gua}宫（${_directionText()}）'),
+        backgroundColor: const Color(0xFF1E8E3E),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // 3. Also capture and save the photo as a normal point
+    await _normalCapture();
+  }
+
+  /// Normal capture: take photo → watermark → save form.
+  Future<void> _normalCapture() async {
+    // 1. Take photo → save as temp file
+    final XFile? photo;
+    try {
+      photo = await _cameraController!.takePicture();
+    } catch (e) {
+      if (!mounted) return;
+      final proceed = await _showPhotoFailedDialog();
+      if (proceed == true) {
+        await _saveWithoutPhoto();
+      }
+      return;
+    }
+
+    // 2. Save to temp
+    final tempDir = await getApplicationDocumentsDirectory();
+    final tempFile = '${tempDir.path}/temp_capture_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    _tempPhotoPath = tempFile;
+    await File(photo.path).copy(tempFile);
+
+    // 3. Open save form
+    if (!mounted) return;
+    await _openSaveForm(tempFile);
   }
 
   Future<void> _openSaveForm(String tempPath) async {
@@ -601,18 +667,32 @@ class _CameraAimPageState extends State<CameraAimPage>
                   tooltip: '切换镜头',
                 ),
               const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black38,
-                  borderRadius: BorderRadius.circular(6),
+              // 定伏位 badge or project name
+              if (_needsBasePalace)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE53935).withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    '定伏位',
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black38,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _project?.name ?? '相机测向',
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                child: Text(
-                  _project?.name ?? '相机测向',
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
             ],
           ),
         ),
@@ -726,8 +806,17 @@ class _CameraAimPageState extends State<CameraAimPage>
         child: IgnorePointer(
           child: Center(
             child: Text(
-              _capturing ? '处理中…' : '将十字线对准目标中心',
-              style: const TextStyle(color: Colors.white60, fontSize: 12),
+              _capturing
+                  ? '处理中…'
+                  : _needsBasePalace
+                      ? '首次拍照自动定为伏位'
+                      : '将十字线对准目标中心',
+              style: TextStyle(
+                color: _needsBasePalace
+                    ? const Color(0xFFFFD54F)
+                    : Colors.white60,
+                fontSize: 12,
+              ),
             ),
           ),
         ),

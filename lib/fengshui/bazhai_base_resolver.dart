@@ -29,6 +29,20 @@ class BaZhaiBaseResolver {
     return project.basePalace ?? fallback;
   }
 
+  /// Check if a project needs its base palace set (first measurement).
+  /// Returns true when no base palace can be resolved — the user must take their
+  /// first measurement to define it.
+  static bool needsBasePalace(MeasurementProject project, List<CompassRecord> records) {
+    return resolveBasePalace(project: project, records: records) == null;
+  }
+
+  /// Get the gua for a heading (used for first-measurement base palace).
+  static String guaFromHeading(double heading) {
+    final sector = DirectionSector.sector8FromHeading(heading);
+    final gua = DirectionSector.sectorToGua(sector);
+    return gua.isEmpty ? '乾' : gua;
+  }
+
   /// Find the base door with priority: entranceDoor > roomDoor > legacy door.
   static CompassRecord? resolveBaseDoor(List<CompassRecord> records) {
     for (final r in records) {

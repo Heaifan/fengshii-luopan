@@ -34,9 +34,9 @@ class TiandirenPlate extends StatelessWidget {
 
         // Precompute palace rects
         const gridLayout = [
-          ['northWest', 'north', 'northEast'],
-          ['west', 'center', 'east'],
-          ['southWest', 'south', 'southEast'],
+          ['southEast', 'south', 'southWest'],
+          ['east', 'center', 'west'],
+          ['northEast', 'north', 'northWest'],
         ];
         final palaceRects = <String, Rect>{};
         for (int row = 0; row < 3; row++) {

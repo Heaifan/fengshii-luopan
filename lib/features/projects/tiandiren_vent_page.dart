@@ -63,7 +63,7 @@ class _TiandirenVentPageState extends State<TiandirenVentPage> {
     if (hasDoor && hasBed && hasStove) {
       return '已识别门、主、灶三个关键点位。';
     }
-    return '已识别 $_records.length 个测点，继续补充主、灶等点位后可完善判断。';
+    return '已识别 ${_records.length} 个测点，继续补充主、灶等点位后可完善判断。';
   }
 
   @override

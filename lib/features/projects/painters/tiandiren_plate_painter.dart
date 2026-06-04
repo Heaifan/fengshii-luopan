@@ -24,11 +24,11 @@ class TiandirenPlatePainter extends CustomPainter {
   static const _mountainTextR = 0.92;
   static const _gridHalfSide = 0.62;
 
-  // Correct grid: top=N, right=E, bottom=S, left=W
+  // Traditional luopan: top=S (午), bottom=N (子), left=E (卯), right=W (酉)
   static const _gridLayout = [
-    ['northWest', 'north', 'northEast'],
-    ['west', 'center', 'east'],
-    ['southWest', 'south', 'southEast'],
+    ['southEast', 'south', 'southWest'],
+    ['east', 'center', 'west'],
+    ['northEast', 'north', 'northWest'],
   ];
 
   static const _sectorToGua = {
@@ -114,10 +114,10 @@ class TiandirenPlatePainter extends CustomPainter {
     for (int i = 0; i < 24; i++) {
       final mountain = Mountain24Calculator.mountains[i];
       final centerDeg = i * 15.0;
-      final centerRad = (centerDeg - 90) * math.pi / 180;
+      final centerRad = (centerDeg + 90) * math.pi / 180;
 
       final startDeg = centerDeg - 7.5;
-      final startRad = (startDeg - 90) * math.pi / 180;
+      final startRad = (startDeg + 90) * math.pi / 180;
       canvas.drawLine(
         center + Offset(math.cos(startRad) * innerR, math.sin(startRad) * innerR),
         center + Offset(math.cos(startRad) * outerR, math.sin(startRad) * outerR),
@@ -280,7 +280,7 @@ class TiandirenPlatePainter extends CustomPainter {
   }
 
   Offset _pointPosition(CompassRecord record, Offset center, double R) {
-    final rad = (record.heading - 90) * math.pi / 180;
+    final rad = (record.heading + 90) * math.pi / 180;
     final r = R * _radiusFactor(record.measureType);
     return Offset(center.dx + math.cos(rad) * r, center.dy + math.sin(rad) * r);
   }

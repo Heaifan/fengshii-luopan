@@ -30,8 +30,13 @@ class AppTheme {
   static const Color pointTagText = Color(0xFFFFF9F0);
 
   // ===== 门图标色 =====
-  static const Color entranceDoorIcon = Color(0xFF8A5A16);
-  static const Color roomDoorIcon = Color(0xFF6A4A1E);
+  static const Color entranceDoorBg = Color(0xFFC62828);
+  static const Color entranceDoorIcon = Color(0xFFFFFFFF);
+  static const Color entranceDoorSelectedBorder = Color(0xFFD32F2F);
+
+  static const Color roomDoorBg = Color(0xFF5A4422);
+  static const Color roomDoorIcon = Color(0xFFFFFFFF);
+  static const Color roomDoorSelectedBorder = Color(0xFFC58A00);
 
   // ----- 旧字段别名（兼容） -----
   static const Color auspiciousColor = goodText;

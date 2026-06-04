@@ -121,3 +121,32 @@ StarPalaceRelation resolveStarPalaceRelation({
     type: '未知', detail: '', description: '',
   );
 }
+
+/// Build a human-readable good/bad hint combining bazhai rank and star-palace relation.
+///
+/// [bazhaiRank] is like "一凶" / "二吉" / "三吉" / "一吉".
+/// [relationType] is like "比和" / "星生宫" / "宫生星" / "星克宫" / "宫克星".
+/// Returns a sentence like "一凶，且宫克星，偏受制".
+String buildGoodBadHint({
+  required String bazhaiRank,
+  required String relationType,
+}) {
+  String relationHint;
+  switch (relationType) {
+    case '比和':
+      relationHint = '比和同气，较稳';
+    case '星生宫':
+      relationHint = '星生宫，偏顺';
+    case '宫生星':
+      relationHint = '宫生星，偏顺';
+    case '星克宫':
+      relationHint = '星克宫，偏冲克';
+    case '宫克星':
+      relationHint = '宫克星，偏受制';
+    default:
+      relationHint = '星与宫关系待定';
+  }
+
+  if (bazhaiRank.isEmpty) return '待定';
+  return '$bazhaiRank，且$relationHint';
+}

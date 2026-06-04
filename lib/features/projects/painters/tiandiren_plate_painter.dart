@@ -329,9 +329,9 @@ class TiandirenPlatePainter extends CustomPainter {
   // ============================================================
 
   void _drawSvgDoorIcon(Canvas canvas, Offset pos, double r, String type) {
-    // Background circle
-    final bgPaint = Paint()..color = AppTheme.pointTagBg;
-    canvas.drawCircle(pos, r, bgPaint);
+    final isEntrance = type == 'entranceDoor';
+    // Background circle — red for entrance, dark brown for room door
+    canvas.drawCircle(pos, r, Paint()..color = isEntrance ? AppTheme.entranceDoorBg : AppTheme.roomDoorBg);
 
     final iconSize = r * 1.6;
     final iconRect = Rect.fromCenter(
@@ -340,11 +340,7 @@ class TiandirenPlatePainter extends CustomPainter {
       height: iconSize,
     );
 
-    final color = type == 'entranceDoor'
-        ? AppTheme.entranceDoorIcon
-        : AppTheme.roomDoorIcon;
-
-    final paths = type == 'entranceDoor'
+    final paths = isEntrance
         ? AppSvgIcons.entranceDoorPaths
         : AppSvgIcons.roomDoorPaths;
 
@@ -352,7 +348,7 @@ class TiandirenPlatePainter extends CustomPainter {
       canvas: canvas,
       paths: paths,
       rect: iconRect,
-      color: color,
+      color: Colors.white, // Always white icon
     );
   }
 

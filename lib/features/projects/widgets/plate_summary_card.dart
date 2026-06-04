@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../data/models/measure_type.dart';
+import '../../../fengshui/five_element_relation.dart';
 import '../utils/plate_record_info.dart';
 import '../utils/plate_record_sorter.dart';
 
@@ -75,6 +76,31 @@ class PlateSummaryCard extends StatelessWidget {
     );
   }
 
+  String _guaFromPalace(String palace) {
+    if (palace.isEmpty) return '';
+    return palace[0];
+  }
+
+  String _starNameFromBazhai(String text) {
+    const stars = ['生气', '天医', '延年', '伏位', '绝命', '五鬼', '六煞', '祸害'];
+    for (final s in stars) {
+      if (text.startsWith(s)) return s;
+    }
+    return '';
+  }
+
+  Widget _buildStarRelation(CompassRecord record) {
+    final gua = _guaFromPalace(record.palace);
+    final starName = _starNameFromBazhai(record.bazhaiText);
+    if (gua.isEmpty || starName.isEmpty) {
+      return const Text('星宫：待定',
+          style: TextStyle(fontSize: 11, color: Color(0xFF6B5A44)));
+    }
+    final r = resolveStarPalaceRelation(palaceGua: gua, starName: starName);
+    return Text('星宫：${r.type}（${r.detail}）',
+        style: const TextStyle(fontSize: 11, color: Color(0xFF6B5A44)));
+  }
+
   Widget _buildRow(int index, PlateRecordInfo info, String typeLabel,
       String name) {
     final isEven = index.isEven;
@@ -141,6 +167,7 @@ class PlateSummaryCard extends StatelessWidget {
                           : const Color(0xFF2E7D4F),
                     ),
                   ),
+                  _buildStarRelation(info.record),
                 ],
               ),
             ),

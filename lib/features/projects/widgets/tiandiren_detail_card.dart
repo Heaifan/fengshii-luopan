@@ -3,7 +3,23 @@ import '../../../app/theme.dart';
 import '../../../data/models/compass_record.dart';
 import '../../../fengshui/direction_sector.dart';
 import '../../../fengshui/mountain_24_info.dart';
+import '../../../fengshui/five_element_relation.dart';
 import '../../../data/models/measure_type.dart';
+
+/// Extract star name from bazhaiText like "五鬼火（二凶）" → "五鬼".
+String _starNameFromBazhai(String text) {
+  const stars = ['生气', '天医', '延年', '伏位', '绝命', '五鬼', '六煞', '祸害'];
+  for (final s in stars) {
+    if (text.startsWith(s)) return s;
+  }
+  return '';
+}
+
+/// Extract gua from palace like "离宫" → "离".
+String _guaFromPalace(String palace) {
+  if (palace.isEmpty) return '';
+  return palace[0];
+}
 
 class TiandirenDetailCard extends StatelessWidget {
   final CompassRecord record;
@@ -34,6 +50,16 @@ class TiandirenDetailCard extends StatelessWidget {
         ? record.measureName!.trim()
         : typeLabel;
     final isAuspicious = !record.bazhaiText.contains('凶');
+
+    // Star-palace relation
+    final gua = _guaFromPalace(record.palace);
+    final starName = _starNameFromBazhai(record.bazhaiText);
+    final hasRelation =
+        gua.isNotEmpty && starName.isNotEmpty;
+    final relation = hasRelation
+        ? resolveStarPalaceRelation(
+            palaceGua: gua, starName: starName)
+        : null;
 
     return GestureDetector(
       onLongPress: onLongPress,
@@ -67,8 +93,7 @@ class TiandirenDetailCard extends StatelessWidget {
             const SizedBox(height: 6),
             _infoLine('方向', record.directionText),
             const SizedBox(height: 2),
-            _infoLine(
-                '宫', '$palaceLabel（$dirLabel）'),
+            _infoLine('宫', '$palaceLabel（$dirLabel）'),
             const SizedBox(height: 2),
             _infoLine('山',
                 '${mountainInfo.mountainLabel}｜${mountainInfo.yuanLongLabel}｜${mountainInfo.element}'),
@@ -77,12 +102,33 @@ class TiandirenDetailCard extends StatelessWidget {
               '星：${record.bazhaiText}',
               style: TextStyle(
                 color: isAuspicious
-                    ? const Color(0xFF2E7D4F)
-                    : const Color(0xFFA13A2A),
+                    ? const Color(0xFF3E7A4B)
+                    : const Color(0xFF9A4A3D),
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),
             ),
+            if (relation != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                '星宫：${relation.type}（${relation.detail}）',
+                style: const TextStyle(
+                  color: Color(0xFF6B5A44),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: 2),
+              const Text(
+                '星宫：待定',
+                style: TextStyle(
+                  color: Color(0xFF6B5A44),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             const Text(
               '注：测点为方位示意，不代表实际距离比例。',

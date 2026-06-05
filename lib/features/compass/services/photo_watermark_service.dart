@@ -34,7 +34,7 @@ class PhotoWatermarkService {
       final width = image.width;
       final height = image.height;
 
-      final barHeight = (height * 0.18).round().clamp(60, 200);
+      final barHeight = (height * 0.28).round().clamp(120, 320);
       final barRect = Rect.fromLTWH(
         0,
         (height - barHeight).toDouble(),
@@ -54,12 +54,12 @@ class PhotoWatermarkService {
       // Semi-transparent black bar
       canvas.drawRect(barRect, Paint()..color = const Color(0x8C000000));
 
-      // Font sizes relative to image width
-      final headingSize = (width * 0.055).clamp(14.0, 32.0);
-      final normalSize = (width * 0.032).clamp(10.0, 20.0);
-      final smallSize = (width * 0.028).clamp(9.0, 16.0);
+      // Font sizes relative to image width — enlarged for readability
+      final headingSize = (width * 0.08).clamp(24.0, 52.0);
+      final normalSize = (width * 0.05).clamp(18.0, 34.0);
+      final smallSize = (width * 0.04).clamp(15.0, 26.0);
 
-      final padding = (width * 0.04).round().clamp(8, 20);
+      final padding = (width * 0.05).round().clamp(12, 28);
 
       // Build text
       final nameStr = pointName != null && pointName.isNotEmpty
@@ -67,7 +67,7 @@ class PhotoWatermarkService {
           : '$projectName · $pointLabel';
       final timeStr = DateFormat('MM-dd HH:mm').format(takenAt);
       final magStr =
-          magneticField != null ? '${magneticField.toStringAsFixed(0)}μT' : '--';
+          magneticField != null ? '${magneticField.toStringAsFixed(0)}μT' : '未记录';
       final tiltQuality = (pitch.abs() + roll.abs()) / 2;
       final tiltStr = tiltQuality < 15
           ? '良好'

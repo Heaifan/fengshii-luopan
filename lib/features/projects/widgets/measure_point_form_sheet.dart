@@ -31,6 +31,7 @@ Future<MeasurePointFormResult?> showMeasurePointFormSheet({
   required CompassRecord initialRecord,
   required String houseGua,
   bool allowDelete = true,
+  bool bazhaiPending = false,
 }) {
   return showModalBottomSheet<MeasurePointFormResult>(
     context: context,
@@ -41,6 +42,7 @@ Future<MeasurePointFormResult?> showMeasurePointFormSheet({
         initialRecord: initialRecord,
         houseGua: houseGua,
         allowDelete: allowDelete,
+        bazhaiPending: bazhaiPending,
       );
     },
   );
@@ -50,11 +52,13 @@ class _MeasurePointFormSheet extends StatefulWidget {
   final CompassRecord initialRecord;
   final String houseGua;
   final bool allowDelete;
+  final bool bazhaiPending;
 
   const _MeasurePointFormSheet({
     required this.initialRecord,
     required this.houseGua,
     this.allowDelete = true,
+    this.bazhaiPending = false,
   });
 
   @override
@@ -117,9 +121,11 @@ class _MeasurePointFormSheetState
     final info = DirectionSector.mountainInfoFromHeading(heading);
     final starMeta = bazhaiStarMetaMap[reading.bazhaiStar];
     final starElement = starMeta?.element ?? '';
-    final bazhaiText = '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
+    final bazhaiText = widget.bazhaiPending
+        ? '待定（请先设置伏位/保存入户门）'
+        : '${reading.bazhaiStar}$starElement（${reading.bazhaiRank}）';
     final directionText = '${compassDirectionName(heading)}${heading.toStringAsFixed(0)}°';
-    final isAuspicious = starMeta?.isGood ?? false;
+    final isAuspicious = widget.bazhaiPending ? false : (starMeta?.isGood ?? false);
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 180),

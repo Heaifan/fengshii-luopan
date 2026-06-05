@@ -21,6 +21,8 @@ import '../projects/widgets/project_picker_sheet.dart';
 import 'compass_sensor_service.dart';
 import 'services/photo_watermark_service.dart';
 
+enum _BaseChoice { setAndSave, saveOnly, cancel }
+
 class CameraAimPage extends StatefulWidget {
   final MeasurementProject? project;
 
@@ -130,11 +132,19 @@ class _CameraAimPageState extends State<CameraAimPage>
       return _createProjectForCamera();
     }
 
+    // Load record counts for each project
+    final allRecords = await _storage.loadRecords();
+    final counts = <String, int>{};
+    for (final p in projects) {
+      counts[p.id] = allRecords.where((r) => r.projectId == p.id).length;
+    }
+
     // Have projects → show picker
     return showModalBottomSheet<MeasurementProject>(
       context: context,
       builder: (ctx) => ProjectPickerSheet(
         projects: projects,
+        recordCounts: counts,
         onCreateProject: _createProjectForCamera,
       ),
     );
@@ -291,40 +301,11 @@ class _CameraAimPageState extends State<CameraAimPage>
     }
   }
 
-  /// First capture: set 伏位 from heading, save project, save photo.
+  /// First capture: only set 伏位 if entranceDoor, with confirmation.
   Future<void> _setBasePalaceAndCapture() async {
-    // 1. Set 伏位 from current heading
-    final gua = BaZhaiBaseResolver.guaFromHeading(_heading);
-    final now = DateTime.now();
-    final updatedProject = MeasurementProject(
-      id: _project!.id,
-      name: _project!.name,
-      type: _project!.type,
-      location: _project!.location,
-      note: _project!.note,
-      createdAt: _project!.createdAt,
-      updatedAt: now,
-      baZhaiMode: 'wholeHouse',
-      basePalace: gua,
-    );
-    await _storage.updateProject(updatedProject);
-    _project = updatedProject;
-    _bazhaiResolved = true;
-    _bazhaiBaseGua = gua;
-
-    // 2. Show 伏位 confirmation
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('伏位已定：${gua}宫（${_directionText()}）'),
-        backgroundColor: const Color(0xFF1E8E3E),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    // 3. Also capture and save the photo as a normal point
+    // Take the photo first, then decide about 伏位
     await _normalCapture();
+    // The _openSaveForm will handle the 伏位 logic after user selects type
   }
 
   /// Normal capture: take photo → watermark → save form.
@@ -354,20 +335,22 @@ class _CameraAimPageState extends State<CameraAimPage>
   }
 
   Future<void> _openSaveForm(String tempPath) async {
+    final captureHeading = _heading;
     final now = DateTime.now();
-    final reading = _buildReading();
-    final dirText = _directionText();
-    final sectorKey = DirectionSector.sector8FromHeading(_heading);
+
+    // Build initial reading from capture heading
+    final captureReading = _buildReading();
+    final captureDirText = _directionText();
+    final sectorKey = DirectionSector.sector8FromHeading(captureHeading);
     final palaceLabel = DirectionSector.sectorGuaPalaceLabel(sectorKey);
 
-    // Build bazhai text — handle pending
-    String bazhaiDisplay;
+    String captureBazhai;
     if (_bazhaiResolved) {
-      final meta = bazhaiStarMetaMap[reading.bazhaiStar];
-      bazhaiDisplay =
-          '${reading.bazhaiStar}${meta?.element ?? ''}（${reading.bazhaiRank}）';
+      final meta = bazhaiStarMetaMap[captureReading.bazhaiStar];
+      captureBazhai =
+          '${captureReading.bazhaiStar}${meta?.element ?? ''}（${captureReading.bazhaiRank}）';
     } else {
-      bazhaiDisplay = '待定（请先保存入户门）';
+      captureBazhai = '待定（请先保存入户门）';
     }
 
     setState(() => _saving = true);
@@ -376,14 +359,14 @@ class _CameraAimPageState extends State<CameraAimPage>
       context: context,
       initialRecord: CompassRecord.create(
         name: '',
-        heading: _heading,
-        directionText: dirText,
-        sittingFacingText: reading.sittingFacingText,
-        sittingMountain: reading.sittingMountain,
-        facingMountain: reading.facingMountain,
+        heading: captureHeading,
+        directionText: captureDirText,
+        sittingFacingText: captureReading.sittingFacingText,
+        sittingMountain: captureReading.sittingMountain,
+        facingMountain: captureReading.facingMountain,
         palace: '$palaceLabel',
-        mountainText: reading.fullSanyuanText,
-        bazhaiText: bazhaiDisplay,
+        mountainText: captureReading.fullSanyuanText,
+        bazhaiText: captureBazhai,
         statusText: '相机测向',
         horizontalAngle: _roll,
         verticalAngle: _pitch,
@@ -393,34 +376,82 @@ class _CameraAimPageState extends State<CameraAimPage>
         savedFromCamera: false,
       ),
       houseGua: _bazhaiBaseGua,
+      bazhaiPending: !_bazhaiResolved,
     );
 
     if (result == null || !mounted) {
-      // User cancelled — cleanup temp
       _cleanupTemp();
       setState(() => _saving = false);
       return;
     }
 
-    // User confirmed — generate watermarked photo
+    // ---- Use final heading (form may have changed it) ----
+    final finalHeading = result.heading ?? captureHeading;
+    final finalReading = CompassReadingBuilder.build(
+      degree: finalHeading,
+      houseGua: _bazhaiBaseGua,
+    );
+    final finalDirText =
+        '${compassDirectionName(finalHeading)}${finalHeading.toStringAsFixed(0)}°';
+
+    String finalBazhai;
+    if (_bazhaiResolved) {
+      final meta = bazhaiStarMetaMap[finalReading.bazhaiStar];
+      finalBazhai =
+          '${finalReading.bazhaiStar}${meta?.element ?? ''}（${finalReading.bazhaiRank}）';
+    } else {
+      finalBazhai = '待定（请先保存入户门）';
+    }
+
+    // ---- Handle 伏位 for entranceDoor ----
+    bool shouldSetBase = false;
+    if (_needsBasePalace && result.measureType == MeasureTypes.entranceDoor) {
+      final choice = await _showSetBaseConfirmDialog();
+      if (choice == _BaseChoice.setAndSave) {
+        shouldSetBase = true;
+      } else if (choice == _BaseChoice.cancel) {
+        _cleanupTemp();
+        setState(() => _saving = false);
+        return;
+      }
+      // _BaseChoice.saveOnly → just save, no 伏位
+    }
+
+    if (shouldSetBase) {
+      final gua = BaZhaiBaseResolver.guaFromHeading(finalHeading);
+      final updatedProject = MeasurementProject(
+        id: _project!.id,
+        name: _project!.name,
+        type: _project!.type,
+        location: _project!.location,
+        note: _project!.note,
+        createdAt: _project!.createdAt,
+        updatedAt: DateTime.now(),
+        baZhaiMode: _project!.baZhaiMode, // keep original mode
+        basePalace: gua,
+      );
+      await _storage.updateProject(updatedProject);
+      _project = updatedProject;
+      _bazhaiResolved = true;
+      _bazhaiBaseGua = gua;
+      // Recalculate final bazhai with new base
+      finalBazhai = '${finalReading.bazhaiStar}${bazhaiStarMetaMap[finalReading.bazhaiStar]?.element ?? ''}（${finalReading.bazhaiRank}）';
+    }
+
+    // ---- Generate watermarked photo with final data ----
     String? finalPhotoPath;
     try {
-      final meta = bazhaiStarMetaMap[reading.bazhaiStar];
-      final bazhaiText = _bazhaiResolved
-          ? '${reading.bazhaiStar}${meta?.element ?? ''}（${reading.bazhaiRank}）'
-          : '待定';
-
       finalPhotoPath = await PhotoWatermarkService.addWatermark(
         sourcePath: tempPath,
-        headingText: dirText,
-        palaceText: '${reading.facingGua}宫',
-        sittingFacingText: reading.sittingFacingText,
-        facingMountainText: reading.facingMountain,
-        sittingMountainText: reading.sittingMountain,
+        headingText: finalDirText,
+        palaceText: '${finalReading.facingGua}宫',
+        sittingFacingText: finalReading.sittingFacingText,
+        facingMountainText: finalReading.facingMountain,
+        sittingMountainText: finalReading.sittingMountain,
         projectName: _project?.name ?? '',
         pointLabel: MeasureTypes.label(result.measureType),
         pointName: result.measureName,
-        bazhaiText: bazhaiText,
+        bazhaiText: finalBazhai,
         takenAt: now,
         magneticField: null,
         pitch: _pitch,
@@ -428,21 +459,21 @@ class _CameraAimPageState extends State<CameraAimPage>
         deleteSource: true,
       );
     } catch (_) {}
-    _tempPhotoPath = null; // temp handled by watermark service
+    _tempPhotoPath = null;
 
-    // Save the record
+    // ---- Save the record ----
     final record = CompassRecord.create(
       name: result.measureName.isEmpty
           ? '${MeasureTypes.label(result.measureType)}测点'
           : result.measureName,
-      heading: _heading,
-      directionText: dirText,
-      sittingFacingText: reading.sittingFacingText,
-      sittingMountain: reading.sittingMountain,
-      facingMountain: reading.facingMountain,
-      palace: '${reading.facingGua}宫',
-      mountainText: reading.fullSanyuanText,
-      bazhaiText: bazhaiDisplay,
+      heading: finalHeading,
+      directionText: finalDirText,
+      sittingFacingText: finalReading.sittingFacingText,
+      sittingMountain: finalReading.sittingMountain,
+      facingMountain: finalReading.facingMountain,
+      palace: '${finalReading.facingGua}宫',
+      mountainText: finalReading.fullSanyuanText,
+      bazhaiText: finalBazhai,
       statusText: '相机测向',
       horizontalAngle: _roll,
       verticalAngle: _pitch,
@@ -460,6 +491,9 @@ class _CameraAimPageState extends State<CameraAimPage>
     );
     await _storage.addRecord(record);
 
+    // ---- Refresh project records + bazhai status for next capture ----
+    await _loadProjectRecords();
+
     if (!mounted) return;
     setState(() {
       _saving = false;
@@ -468,11 +502,40 @@ class _CameraAimPageState extends State<CameraAimPage>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '已保存${_selectedType}测点${finalPhotoPath != null ? '（含照片）' : ''}',
+          '已保存${MeasureTypes.label(result.measureType)}${
+              finalPhotoPath != null ? '（含照片）' : ''}',
         ),
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<_BaseChoice> _showSetBaseConfirmDialog() async {
+    final choice = await showDialog<_BaseChoice>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('设为伏位来源？'),
+        content: const Text(
+          '当前项目尚未确定伏位。\n\n'
+          '是否将本次"入户门"测量作为门位起伏位的伏位来源？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, _BaseChoice.cancel),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, _BaseChoice.saveOnly),
+            child: const Text('仅保存测点'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, _BaseChoice.setAndSave),
+            child: const Text('设为伏位并保存'),
+          ),
+        ],
+      ),
+    );
+    return choice ?? _BaseChoice.cancel;
   }
 
   Future<void> _saveWithoutPhoto() async {
@@ -503,6 +566,7 @@ class _CameraAimPageState extends State<CameraAimPage>
         savedFromCamera: false,
       ),
       houseGua: _bazhaiBaseGua,
+      bazhaiPending: !_bazhaiResolved,
     );
 
     if (result == null || !mounted) return;

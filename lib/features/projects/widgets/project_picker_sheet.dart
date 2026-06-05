@@ -14,11 +14,13 @@ String _typeLabel(String type) {
 /// Sheet that lets the user pick an existing project or create a new one.
 class ProjectPickerSheet extends StatelessWidget {
   final List<MeasurementProject> projects;
+  final Map<String, int> recordCounts;
   final Future<MeasurementProject?> Function() onCreateProject;
 
   const ProjectPickerSheet({
     super.key,
     required this.projects,
+    this.recordCounts = const {},
     required this.onCreateProject,
   });
 
@@ -98,7 +100,7 @@ class ProjectPickerSheet extends StatelessWidget {
         ),
       ),
       subtitle: Text(
-        '${_typeLabel(p.type)} · 未设置测点',
+        '${_typeLabel(p.type)} · 已测 ${recordCounts[p.id] ?? 0} 个点',
         style: const TextStyle(
           fontSize: 12,
           color: AppTheme.subText,

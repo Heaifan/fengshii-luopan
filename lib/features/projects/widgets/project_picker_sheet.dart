@@ -12,6 +12,7 @@ String _typeLabel(String type) {
 }
 
 /// Sheet that lets the user pick an existing project or create a new one.
+/// List is scrollable; create button is always visible at bottom.
 class ProjectPickerSheet extends StatelessWidget {
   final List<MeasurementProject> projects;
   final Map<String, int> recordCounts;
@@ -26,56 +27,71 @@ class ProjectPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.of(context).size.height * 0.78;
+
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 36, height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD2B978).withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(3),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 36, height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD2B978).withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '选择测量项目',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.titleText,
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Project list
-            ...projects.map((p) => _projectTile(context, p)),
-            const SizedBox(height: 8),
-            // Create new
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final created = await onCreateProject();
-                  if (created != null && context.mounted) {
-                    Navigator.pop(context, created);
-                  }
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('新建项目'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF5A4724),
-                  side: const BorderSide(color: Color(0xFF5A4724)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+              const SizedBox(height: 16),
+              const Text(
+                '选择测量项目',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.titleText,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              // Scrollable project list
+              Expanded(
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    itemCount: projects.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 4),
+                    itemBuilder: (context, index) {
+                      return _projectTile(context, projects[index]);
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Fixed create button at bottom
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final created = await onCreateProject();
+                    if (created != null && context.mounted) {
+                      Navigator.pop(context, created);
+                    }
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('新建项目'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF5A4724),
+                    side: const BorderSide(color: Color(0xFF5A4724)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

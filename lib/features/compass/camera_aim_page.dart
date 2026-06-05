@@ -18,6 +18,7 @@ import '../../fengshui/measure_hints.dart';
 import '../projects/new_measurement_project_page.dart';
 import '../projects/widgets/measure_point_form_sheet.dart';
 import '../projects/widgets/project_picker_sheet.dart';
+import 'compass_page.dart';
 import 'compass_sensor_service.dart';
 import 'services/photo_watermark_service.dart';
 
@@ -53,6 +54,7 @@ class _CameraAimPageState extends State<CameraAimPage>
   // UI state
   bool _capturing = false;
   bool _saving = false;
+  bool _closing = false;
   String? _tempPhotoPath;
   String _selectedType = 'entranceDoor';
 
@@ -79,16 +81,6 @@ class _CameraAimPageState extends State<CameraAimPage>
     // Cleanup temp photo if any
     _cleanupTemp();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
-    }
-    if (state == AppLifecycleState.inactive) {
-      _cameraController?.dispose();
-    }
   }
 
   // ============================================================
@@ -177,7 +169,7 @@ class _CameraAimPageState extends State<CameraAimPage>
       records: _projectRecords,
     );
     _bazhaiResolved = base != null;
-    _bazhaiBaseGua = base ?? '乾';
+    _bazhaiBaseGua = base ?? '';
   }
 
   // ============================================================
@@ -262,6 +254,78 @@ class _CameraAimPageState extends State<CameraAimPage>
 
   String _directionText() {
     return '${compassDirectionName(_heading)}${_heading.toStringAsFixed(0)}°';
+  }
+
+  // ============================================================
+  // Close / Lifecycle
+  // ============================================================
+
+  Future<void> _closeCamera() async {
+    if (_closing) return;
+    _closing = true;
+
+    if (_capturing || _saving) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('正在处理照片'),
+          content: const Text('当前正在拍照或保存，确定要退出相机测向吗？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('继续等待'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('退出'),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) {
+        _closing = false;
+        return;
+      }
+    }
+
+    _cleanupTemp();
+    try {
+      final controller = _cameraController;
+      _cameraController = null;
+      _cameraInitialized = false;
+      await controller?.dispose();
+    } catch (_) {}
+
+    if (!mounted) return;
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop(true);
+    } else {
+      nav.pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => CompassPage(activeProject: _project),
+        ),
+      );
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_closing) return;
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      final controller = _cameraController;
+      _cameraController = null;
+      _cameraInitialized = false;
+      controller?.dispose();
+      return;
+    }
+    if (state == AppLifecycleState.resumed &&
+        mounted &&
+        _projectChecked &&
+        _cameraController == null) {
+      _initCamera();
+    }
   }
 
   // ============================================================
@@ -593,7 +657,11 @@ class _CameraAimPageState extends State<CameraAimPage>
               child: CircularProgressIndicator(color: Colors.white),
             ),
 
-          // Close button — always on top
+          // Overlays (crosshair, heading, etc.)
+          if (_cameraInitialized || _cameraError != null)
+            ..._buildOverlays(),
+
+          // Close button — absolute top layer (last in Stack)
           if (_projectChecked)
             SafeArea(
               child: Align(
@@ -602,15 +670,11 @@ class _CameraAimPageState extends State<CameraAimPage>
                   padding: const EdgeInsets.only(top: 4),
                   child: IconButton(
                     icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _closeCamera,
                   ),
                 ),
               ),
             ),
-
-          // Overlays (crosshair, heading, etc.)
-          if (_cameraInitialized || _cameraError != null)
-            ..._buildOverlays(),
         ],
       ),
     );
@@ -733,10 +797,12 @@ class _CameraAimPageState extends State<CameraAimPage>
         ),
       ),
 
-      // Crosshair (center)
-      CustomPaint(
-        size: Size.infinite,
-        painter: _CrosshairPainter(pitch: _pitch, roll: _roll),
+      // Crosshair (center) — visual only, no hit testing
+      IgnorePointer(
+        child: CustomPaint(
+          size: Size.infinite,
+          painter: _CrosshairPainter(pitch: _pitch, roll: _roll),
+        ),
       ),
 
       // Heading info + type selector (upper area)

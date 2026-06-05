@@ -61,7 +61,12 @@ class SettingsStorage {
 
   Future<void> addRecord(CompassRecord record) async {
     final records = await loadRecords();
-    records.insert(0, record);
+    final index = records.indexWhere((r) => r.id == record.id);
+    if (index >= 0) {
+      records[index] = record;
+    } else {
+      records.insert(0, record);
+    }
     await saveRecords(records);
   }
 

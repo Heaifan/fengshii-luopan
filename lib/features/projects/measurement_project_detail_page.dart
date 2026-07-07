@@ -16,6 +16,7 @@ import '../compass/compass_page.dart';
 import '../records/compass_record_detail_page.dart';
 import 'simple_project_plate_page.dart';
 import 'tiandiren_vent_page.dart';
+import '../floor_plan/floor_plan_page.dart';
 import 'edit_project_page.dart';
 import 'widgets/measure_point_form_sheet.dart';
 
@@ -283,7 +284,11 @@ class _MeasurementProjectDetailPageState
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
@@ -296,6 +301,27 @@ class _MeasurementProjectDetailPageState
                     },
                     icon: const Icon(Icons.circle_outlined, size: 18),
                     label: const Text('天地人通气'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF5A4724),
+                      side: const BorderSide(color: Color(0xFF5A4724)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              FloorPlanPage(project: _project!),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.home_outlined, size: 18),
+                    label: const Text('宅盘图'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF5A4724),
                       side: const BorderSide(color: Color(0xFF5A4724)),

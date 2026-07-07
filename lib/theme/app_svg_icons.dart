@@ -1,4 +1,67 @@
 class AppSvgIcons {
+  /// 横竖交换（宽高互换）
+  static const String swapDimensions = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M128 341.33h768v341.33H128V341.33zm64 64v213.33h640V405.33H192z"/>
+  <path d="M384 128l-128 128h85.33v213.33H512V256h85.33L469.33 128H384zM640 896l128-128h-85.33V554.67H512V768h-85.33L640 896z" fill="currentColor"/>
+</svg>
+''';
+
+  /// 坐向（指南针）
+  static const String direction = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M512 128C300.8 128 128 300.8 128 512s172.8 384 384 384 384-172.8 384-384S723.2 128 512 128zm0 682.67c-164.27 0-298.67-134.4-298.67-298.67S347.73 213.33 512 213.33 810.67 347.73 810.67 512 676.27 810.67 512 810.67z"/>
+  <path d="M512 256L384 640l256-128-256-128z" fill="currentColor"/>
+</svg>
+''';
+
+  /// 加门（门图标）
+  static const String doorAdd = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M192 128h640v768H192V128zm64 64v640h512V192H256z"/>
+  <path d="M320 256h128v384H320V256zm256 0h128v384H576V256zM352 704h64v128h-64V704zm192 0h64v128h-64V704z" fill="currentColor"/>
+</svg>
+''';
+
+  /// 居中（重置视图）
+  static const String centerView = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M128 128h256v64H192v192h-64V128zm768 0v256h-64V192H640v-64h256zM128 896V640h64v192h192v64H128zm768 0H640v-64h192V640h64v256z"/>
+</svg>
+''';
+
+  /// 宅盘图（矩形平面图）
+  static const String floorPlan = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M128 128h768v768H128V128zm64 64v640h640V192H192z"/>
+  <path d="M256 256h128v128H256V256zm192 0h128v128H448V256zm192 0h128v128H640V256zM256 448h128v128H256V448zm192 0h128v128H448V448zm192 0h128v128H640V448zM256 640h128v128H256V640zm192 0h128v128H448V640zm192 0h128v128H640V640z"/>
+</svg>
+''';
+
+  /// 尺寸（带箭头双线）
+  static const String sizeMeasure = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M128 128h768v768H128V128zm64 64v640h640V192H192z"/>
+  <path d="M256 512h512M512 256v512" stroke="currentColor" stroke-width="64" fill="none"/>
+</svg>
+''';
+
+  /// 网格（田字格）
+  static const String gridIcon = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M128 128h768v768H128V128zm64 64v640h640V192H192z"/>
+  <path d="M128 341.33h768M128 597.33h768M341.33 128v768M597.33 128v768" stroke="currentColor" stroke-width="48" fill="none"/>
+</svg>
+''';
+
+  /// 图层 / 显示模式（叠加方块）
+  static const String layersIcon = '''
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <path d="M512 128L128 384l384 256 384-256L512 128z" fill="currentColor"/>
+  <path d="M128 512l384 256 384-256-384 128L128 512z" fill="currentColor" opacity="0.7"/>
+</svg>
+''';
+
   static const String home = '''
 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <path d="M512 128L128 448v448c0 35.35 28.65 64 64 64h224V672h192v288h224c35.35 0 64-28.65 64-64V448L512 128z"/>

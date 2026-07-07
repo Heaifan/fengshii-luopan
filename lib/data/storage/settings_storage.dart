@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/compass_record.dart';
 import '../models/measurement_project.dart';
+import '../models/floor_plan_data.dart';
 
 class SettingsStorage {
   static const _keyHouseGua = 'house_gua';
@@ -145,5 +146,56 @@ class SettingsStorage {
     records.removeWhere((r) => r.projectId == id);
     await saveRecords(records);
     await saveProjects(projects);
+  }
+
+  // ---- Floor Plans ----
+
+  static const _keyFloorPlans = 'floor_plans';
+
+  Future<Map<String, dynamic>> _loadRawFloorPlans() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyFloorPlans);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return {};
+      return decoded.cast<String, dynamic>();
+    } catch (e, st) {
+      debugPrint('loadFloorPlans failed: $e\n$st');
+      return {};
+    }
+  }
+
+  Future<void> _saveRawFloorPlans(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyFloorPlans, jsonEncode(data));
+  }
+
+  Future<Map<String, dynamic>> loadAllFloorPlansRaw() async {
+    return _loadRawFloorPlans();
+  }
+
+  Future<FloorPlanData?> loadFloorPlan(String projectId) async {
+    final all = await _loadRawFloorPlans();
+    final entry = all[projectId];
+    if (entry == null || entry is! Map) return null;
+    try {
+      return FloorPlanData.fromJson(entry.cast<String, dynamic>());
+    } catch (e, st) {
+      debugPrint('loadFloorPlan($projectId) failed: $e\n$st');
+      return null;
+    }
+  }
+
+  Future<void> saveFloorPlan(String projectId, FloorPlanData data) async {
+    final all = await _loadRawFloorPlans();
+    all[projectId] = data.toJson();
+    await _saveRawFloorPlans(all);
+  }
+
+  Future<void> deleteFloorPlan(String projectId) async {
+    final all = await _loadRawFloorPlans();
+    all.remove(projectId);
+    await _saveRawFloorPlans(all);
   }
 }
